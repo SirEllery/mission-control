@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sir Ellery — Mission Control</title>
+    <link rel="stylesheet" href="css/style.css?v=7">
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+      }
+    }
+    </script>
+</head>
+<body>
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Chat Panel -->
+    <div id="chat-panel">
+        <div class="chat-header">
+            <span class="agent-name">SIR ELLERY</span>
+            <div class="status-dot healthy"></div>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" placeholder="Enter command..." id="command-input">
+            <button id="send-btn">SEND</button>
+        </div>
+    </div>
+
+    <!-- Data Panels (positioned by JS to track 3D agents) -->
+    <div id="data-panels"></div>
+
+    <!-- Load Main App -->
+    <script type="module" src="js/main.js?v=7"></script>
+</body>
+</html>
