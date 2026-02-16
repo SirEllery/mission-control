@@ -4,12 +4,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createGrid } from './grid.js?v=18';
-import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=18';
-import { createConnections, animateConnections } from './connections.js?v=18';
-import { createParticles, animateParticles } from './particles.js?v=18';
-import { createDataPanels, updateDataPanels } from './panels.js?v=18';
-import { initializeChat } from './chat.js?v=18';
+import { createGrid } from './grid.js?v=19';
+import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=19';
+import { createConnections, animateConnections } from './connections.js?v=19';
+import { createParticles, animateParticles } from './particles.js?v=19';
+import { createDataPanels, updateDataPanels } from './panels.js?v=19';
+import { initializeChat } from './chat.js?v=19';
 
 class Dashboard {
     constructor() {
