@@ -91,6 +91,15 @@ export function createPillars(agents) {
             beamGlow.position.y = beamBase + beamHeight / 2;
             pillarGroup.add(beamGlow);
 
+            // COUNTER — floating above beam (no background, raw numbers)
+            const cc = createCounterCanvas(agent);
+            const ct = new THREE.CanvasTexture(cc);
+            ct.minFilter = THREE.LinearFilter;
+            beamCounter = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, alphaTest: 0.01 }));
+            beamCounter.position.y = beamBase + beamHeight + 2.0;
+            beamCounter.scale.set(10, 5, 1);
+            beamCounter._canvas = cc; beamCounter._texture = ct;
+            pillarGroup.add(beamCounter);
         }
 
         // INFO PANEL — MAXIMUM READABILITY
@@ -125,7 +134,7 @@ export function createPillars(agents) {
 
         pillars.push({
             group: pillarGroup, body, material: bodyMat, cap, capMat, healthRing, shadow,
-            halo, haloMaterial: haloMat, beam, beamGlow,
+            halo, haloMaterial: haloMat, beam, beamGlow, beamCounter,
             infoPanel, label, light: pointLight, errorLight,
             agent, config, floatY, floatPhase: Math.random() * Math.PI * 2
         });
@@ -151,6 +160,7 @@ export function animatePillars(pillars, elapsedTime) {
             const bb = baseY + p.agent.height + 0.25;
             p.beam.position.y = bb + bh / 2;
             p.beamGlow.position.y = bb + bh / 2;
+            if (p.beamCounter) p.beamCounter.position.y = bb + bh + 2.0;
         }
 
         // Only hex body pulses
@@ -171,6 +181,10 @@ export function animatePillars(pillars, elapsedTime) {
         if (p.beam) {
             p.beam.material.opacity = 0.35 + 0.15 * Math.sin(elapsedTime * 4 + phase);
             p.beamGlow.material.opacity = 0.03 + 0.02 * Math.sin(elapsedTime * 4 + phase);
+            if (p.beamCounter) {
+                updateCounterCanvas(p.beamCounter._canvas, p.agent, elapsedTime);
+                p.beamCounter._texture.needsUpdate = true;
+            }
         }
         if (p.cap) p.capMat.emissiveIntensity = p.config.emissive * (0.7 + 0.2 * Math.sin(elapsedTime * 5 + phase));
         p.shadow.material.opacity = p.config.emissive * (0.03 + 0.015 * Math.sin(elapsedTime * 2 + phase));
@@ -215,7 +229,7 @@ function createInfoPanelCanvas(agent) {
     const task = agent.currentTask || '—';
     ctx.fillText(task.length > 30 ? task.substring(0, 30) + '…' : task, 40, 165);
 
-    // Data rows — MASSIVE
+    // Data rows — TWO COLUMN LAYOUT
     const rows = [
         ['Model', agent.model],
         ['Role', agent.role],
@@ -229,19 +243,79 @@ function createInfoPanelCanvas(agent) {
         ['Uptime', agent.uptime || '—']
     ];
 
+    const colW = (W - 80) / 2;
     let y = 245;
-    rows.forEach(([label, value]) => {
+    for (let i = 0; i < rows.length; i += 2) {
+        // Left column
+        const [lLabel, lValue] = rows[i];
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.font = '48px "Courier New", monospace';
-        ctx.fillText(label, 40, y);
+        ctx.font = '36px "Courier New", monospace';
+        ctx.fillText(lLabel, 40, y);
+        ctx.fillStyle = lLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
+        ctx.font = 'bold 40px "Courier New", monospace';
+        ctx.fillText(lValue, 40, y + 48);
 
-        ctx.fillStyle = label === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
-        ctx.font = 'bold 48px "Courier New", monospace';
-        ctx.fillText(value, 560, y);
-        y += 88;
-    });
+        // Right column
+        if (i + 1 < rows.length) {
+            const [rLabel, rValue] = rows[i + 1];
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '36px "Courier New", monospace';
+            ctx.fillText(rLabel, 40 + colW, y);
+            ctx.fillStyle = rLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
+            ctx.font = 'bold 40px "Courier New", monospace';
+            ctx.fillText(rValue, 40 + colW, y + 48);
+        }
+        y += 120;
+    }
 
     return canvas;
+}
+
+// ═══ COUNTER — Raw floating numbers, no background ═══
+function createCounterCanvas(agent) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 900; canvas.height = 450;
+    updateCounterCanvas(canvas, agent, 0);
+    return canvas;
+}
+
+function updateCounterCanvas(canvas, agent, time) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const tokens = (agent.tokensToday || 0) + Math.floor(time * 12);
+
+    ctx.textAlign = 'center';
+
+    // Tokens
+    ctx.fillStyle = agent.color;
+    ctx.font = 'bold 80px "Courier New", monospace';
+    ctx.fillText(formatTokens(tokens), W / 2, 85);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = '26px "Courier New", monospace';
+    ctx.fillText('TOKENS', W / 2, 118);
+
+    // Cost
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 68px "Courier New", monospace';
+    ctx.fillText(agent.cost || '$0.00', W / 2, 210);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '24px "Courier New", monospace';
+    ctx.fillText('COST', W / 2, 242);
+
+    // Uptime
+    ctx.fillStyle = agent.color;
+    ctx.font = 'bold 50px "Courier New", monospace';
+    ctx.fillText(agent.uptime || '—', W / 2, 330);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '22px "Courier New", monospace';
+    ctx.fillText('UPTIME', W / 2, 360);
+
+    ctx.textAlign = 'left';
 }
 
 function createLabelCanvas(text, color) {
