@@ -377,7 +377,7 @@ function updateCounterCanvas(canvas, agent, time) {
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    const tokens = (agent.tokensToday || 0) + Math.floor(time * 12);
+    const tokens = (agent.tokensToday || 0) + (agent.status === 'active' ? Math.floor(time * 12) : 0);
 
     ctx.textAlign = 'center';
 
