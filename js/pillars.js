@@ -327,21 +327,19 @@ function createInfoPanelCanvas(agent) {
 
     // Agent name
     ctx.fillStyle = agent.color;
-    ctx.font = 'bold 90px "Courier New", monospace';
-    ctx.fillText(agent.name.toUpperCase(), 40, 95);
+    ctx.font = 'bold 80px "Courier New", monospace';
+    ctx.fillText(agent.name.toUpperCase(), 40, 85);
 
-    // Status
+    // Status — on its own line
     const sc = agent.status === 'active' ? '#00ff88' : agent.status === 'error' ? '#ff4444' : agent.status === 'idle' ? '#ffaa00' : '#888';
     ctx.fillStyle = sc;
-    ctx.font = 'bold 55px "Courier New", monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(agent.status.toUpperCase(), MID - 20, 95);
-    ctx.textAlign = 'left';
+    ctx.font = 'bold 45px "Courier New", monospace';
+    ctx.fillText('● ' + agent.status.toUpperCase(), 40, 135);
 
     // Full width divider
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(40, 125); ctx.lineTo(W - 40, 125); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(40, 160); ctx.lineTo(W - 40, 160); ctx.stroke();
 
     // ═══ LEFT SIDE — Data fields (single column) ═══
     const rows = [
@@ -354,7 +352,7 @@ function createInfoPanelCanvas(agent) {
         ['Channels', agent.channels?.length ? agent.channels.join(', ') : '—']
     ];
 
-    let y = 200;
+    let y = 230;
     for (const [label, value] of rows) {
         ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.font = '40px "Courier New", monospace';
@@ -369,22 +367,22 @@ function createInfoPanelCanvas(agent) {
     // ═══ VERTICAL DIVIDER ═══
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(MID, 140); ctx.lineTo(MID, H - 40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(MID, 170); ctx.lineTo(MID, H - 40); ctx.stroke();
 
     // ═══ RIGHT SIDE — Activity Feed ═══
     ctx.fillStyle = agent.color;
     ctx.font = 'bold 42px "Courier New", monospace';
-    ctx.fillText('ACTIVITY', MID + 30, 185);
+    ctx.fillText('ACTIVITY', MID + 30, 215);
 
     // Thin divider under activity header
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(MID + 30, 200); ctx.lineTo(W - 40, 200); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(MID + 30, 230); ctx.lineTo(W - 40, 230); ctx.stroke();
 
     // Activity entries
     const activities = agent._activities || [];
     const maxLineWidth = W - MID - 70;
-    let ay = 250;
+    let ay = 275;
     const lineHeight = 42;
     const maxLines = 22;
     let linesDrawn = 0;
