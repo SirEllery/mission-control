@@ -54,7 +54,7 @@ async function fetchLiveAgentData() {
             },
             body: JSON.stringify({
                 tool: 'sessions_list',
-                args: { messageLimit: 0 }
+                args: { messageLimit: 1 }
             })
         });
 
@@ -82,6 +82,7 @@ async function fetchLiveAgentData() {
             
             // Aggregate across all sessions for this agent
             let totalTokens = 0;
+            let totalCost = 0;
             let totalMessages = 0;
             let channels = new Set();
             let lastUpdated = 0;
@@ -90,7 +91,21 @@ async function fetchLiveAgentData() {
                 totalTokens += s.totalTokens || 0;
                 if (s.channel && s.channel !== 'unknown') channels.add(s.channel);
                 if (s.updatedAt > lastUpdated) lastUpdated = s.updatedAt;
+                
+                // Extract cost from last message's usage data
+                if (s.messages && s.messages.length > 0) {
+                    for (const msg of s.messages) {
+                        totalMessages++;
+                        if (msg.usage && msg.usage.cost && msg.usage.cost.total) {
+                            totalCost += msg.usage.cost.total;
+                        }
+                    }
+                }
             }
+
+            // Note: totalCost from last message only approximates cumulative cost
+            // The real cumulative cost would need full transcript parsing
+            // But this gives us the per-session latest cost as a baseline
 
             // Determine status
             const fiveMinAgo = now - 5 * 60 * 1000;
@@ -100,20 +115,39 @@ async function fetchLiveAgentData() {
             else if (lastUpdated > thirtyMinAgo) status = 'idle';
             else if (sess.length > 0) status = 'idle';
 
-            // Calculate uptime from last updated
-            let uptime = '—';
+            // Last seen
+            let lastSeen = '—';
             if (lastUpdated > 0) {
                 const diff = now - lastUpdated;
-                if (diff < 60000) uptime = 'just now';
-                else if (diff < 3600000) uptime = `${Math.floor(diff / 60000)}m ago`;
-                else if (diff < 86400000) uptime = `${Math.floor(diff / 3600000)}h ${Math.floor((diff % 3600000) / 60000)}m ago`;
-                else uptime = `${Math.floor(diff / 86400000)}d ago`;
+                if (diff < 60000) lastSeen = 'just now';
+                else if (diff < 3600000) lastSeen = `${Math.floor(diff / 60000)}m ago`;
+                else if (diff < 86400000) lastSeen = `${Math.floor(diff / 3600000)}h ${Math.floor((diff % 3600000) / 60000)}m ago`;
+                else lastSeen = `${Math.floor(diff / 86400000)}d ago`;
             }
 
-            // Extract cost from session usage if available
-            // The sessions_list doesn't include cumulative cost easily,
-            // so we'll show token count as the primary metric
-            const model = mainSession?.model || 'Not configured';
+            // Format cost
+            const costStr = totalCost > 0 ? `$${totalCost.toFixed(4)}` : '$0.00';
+
+            // Get last message content as current task
+            let currentTask = '—';
+            if (mainSession?.messages?.[0]) {
+                const lastMsg = mainSession.messages[0];
+                const content = lastMsg.content;
+                if (Array.isArray(content)) {
+                    const textBlock = content.find(c => c.type === 'text');
+                    if (textBlock?.text) {
+                        const txt = textBlock.text.replace(/\n/g, ' ').trim();
+                        currentTask = txt.length > 50 ? txt.substring(0, 50) + '…' : txt;
+                    }
+                } else if (typeof content === 'string') {
+                    currentTask = content.length > 50 ? content.substring(0, 50) + '…' : content;
+                }
+            }
+            if (currentTask === '—' || currentTask === 'NO_REPLY') {
+                currentTask = status === 'active' ? 'Active' : status === 'idle' ? 'Standing by' : 'Offline';
+            }
+
+            const model = mainSession?.model || vis.role;
 
             agents.push({
                 id: agentId,
@@ -121,17 +155,17 @@ async function fetchLiveAgentData() {
                 role: vis.role,
                 model: model,
                 status: status,
-                currentTask: status === 'active' ? 'Active' : status === 'idle' ? 'Standing by' : 'Offline',
+                currentTask: currentTask,
                 sessions: sess.length,
                 channels: [...channels],
                 cronJobs: 0,
                 heartbeat: agentId === 'main',
-                lastActive: uptime,
+                lastActive: lastSeen,
                 tokensToday: totalTokens,
                 messagesCount: totalMessages,
                 errorCount: 0,
-                uptime: status === 'active' ? 'LIVE' : uptime,
-                cost: '—',
+                uptime: status === 'active' ? 'LIVE' : lastSeen,
+                cost: costStr,
                 color: vis.color,
                 height: vis.height,
                 floatHeight: vis.floatHeight,

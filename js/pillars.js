@@ -330,7 +330,7 @@ function createInfoPanelCanvas(agent) {
         ['Role', agent.role],
         ['Sessions', String(agent.sessions)],
         ['Messages', String(agent.messagesCount || 0)],
-        ['Tokens', formatTokens(agent.tokensToday || 0)],
+        ['Total Tkns', formatTokens(agent.tokensToday || 0)],
         ['Cost', agent.cost || '$0.00'],
         ['Errors', String(agent.errorCount || 0)],
         ['Heartbeat', agent.heartbeat ? 'ON' : 'OFF'],
@@ -403,7 +403,7 @@ function updateCounterCanvas(canvas, agent, time) {
 
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '22px "Courier New", monospace';
-    ctx.fillText('UPTIME', W / 2, 360);
+    ctx.fillText(agent.status === 'active' ? 'UPTIME' : 'LAST SEEN', W / 2, 360);
 
     ctx.textAlign = 'left';
 }
