@@ -241,3 +241,66 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 221, 255, 0.8);
 }
+
+/* ═══ MOBILE ═══ */
+@media (max-width: 768px) {
+    #canvas-container {
+        width: 100vw;
+        height: 67vh;
+    }
+
+    #chat-panel {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        height: 33vh;
+        border-radius: 12px 12px 0 0;
+        border-bottom: none;
+        border-left: none;
+        border-right: none;
+    }
+
+    .chat-header {
+        padding: 8px 14px;
+    }
+
+    .agent-name {
+        font-size: 16px;
+    }
+
+    .chat-messages {
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .message .sender {
+        font-size: 13px;
+        margin-bottom: 2px;
+    }
+
+    .message {
+        margin-bottom: 10px;
+        padding: 6px 10px;
+    }
+
+    .message .content {
+        font-size: 12.5px;
+    }
+
+    .chat-input {
+        padding: 10px 14px;
+    }
+
+    #command-input {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    #send-btn {
+        font-size: 11px;
+        padding: 8px 12px;
+    }
+}

@@ -1,115 +1,150 @@
+import { CHAT_CONFIG } from './chat-config.js';
+
+let conversationHistory = [];
+let isStreaming = false;
+
 export function initializeChat() {
     const messagesContainer = document.getElementById('chat-messages');
+    const input = document.getElementById('command-input');
+    const sendBtn = document.getElementById('send-btn');
 
-    const mockMessages = [
-        {
-            sender: 'Sir Ellery',
-            message: 'Mission Control online. All agents reporting.',
-            type: 'agent',
-            timestamp: '15:40'
-        },
-        {
-            sender: 'Kyle',
-            message: 'How\'s the dialectic going?',
-            type: 'user',
-            timestamp: '15:41'
-        },
-        {
-            sender: 'Sir Ellery',
-            message: 'Dreamer ↔ Skeptic in Round 2. Memory system v1 spec. Dreamer expanding, Skeptic stress-testing. Convergence likely by Round 3.',
-            type: 'agent',
-            timestamp: '15:41'
-        },
-        {
-            sender: 'Kyle',
-            message: 'Cost so far?',
-            type: 'user',
-            timestamp: '15:42'
-        },
-        {
-            sender: 'Sir Ellery',
-            message: 'Total: $0.64. Dreamer (MiniMax): $0.04. Skeptic (GPT-5): $0.22. My overhead: $0.38. Well within budget.',
-            type: 'agent',
-            timestamp: '15:42'
-        },
-        {
-            sender: 'Kyle',
-            message: 'What about the Researcher?',
-            type: 'user',
-            timestamp: '15:43'
-        },
-        {
-            sender: 'Sir Ellery',
-            message: 'Standing by. Scaffolded and ready — waiting for Research Agent Phase 1 to deploy. Memory system comes first.',
-            type: 'agent',
-            timestamp: '15:43'
+    // Welcome message
+    addMessage('Sir Ellery', 'Mission Control online. Type a message to chat.', 'agent');
+
+    // Send on button click
+    sendBtn.addEventListener('click', () => sendMessage());
+
+    // Send on Enter
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
         }
-    ];
-
-    mockMessages.forEach(msg => {
-        const messageElement = createMessageElement(msg);
-        messagesContainer.appendChild(messageElement);
     });
-
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    // Typing indicator after 3s
-    setTimeout(() => {
-        addTypingIndicator();
-    }, 3000);
 }
 
-function createMessageElement(messageData) {
+async function sendMessage() {
+    if (isStreaming) return;
+
+    const input = document.getElementById('command-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+
+    // Show user message
+    addMessage(CHAT_CONFIG.userName, text, 'user');
+
+    // Add to conversation history
+    conversationHistory.push({ role: 'user', content: text });
+
+    // Start streaming response
+    isStreaming = true;
+    const responseEl = addMessage(CHAT_CONFIG.agentName, '', 'agent');
+    const contentEl = responseEl.querySelector('.content');
+
+    try {
+        const response = await fetch(`${CHAT_CONFIG.apiBase}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${CHAT_CONFIG.token}`,
+                'Content-Type': 'application/json',
+                'x-openclaw-agent-id': CHAT_CONFIG.agentId,
+            },
+            body: JSON.stringify({
+                model: 'openclaw',
+                stream: true,
+                user: CHAT_CONFIG.user,
+                messages: conversationHistory,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            contentEl.textContent = `Error ${response.status}: ${err}`;
+            isStreaming = false;
+            return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+
+                try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content;
+                    if (delta) {
+                        fullText += delta;
+                        contentEl.textContent = fullText;
+                        scrollToBottom();
+                    }
+                } catch (e) {
+                    // skip unparseable chunks
+                }
+            }
+        }
+
+        // Save assistant response to history
+        if (fullText) {
+            conversationHistory.push({ role: 'assistant', content: fullText });
+        }
+
+        // Update timestamp
+        const timeEl = responseEl.querySelector('.timestamp');
+        if (timeEl) timeEl.textContent = getCurrentTime();
+
+    } catch (err) {
+        contentEl.textContent = `Connection error: ${err.message}`;
+    }
+
+    isStreaming = false;
+}
+
+function addMessage(sender, text, type) {
+    const messagesContainer = document.getElementById('chat-messages');
+
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${messageData.type}`;
+    messageDiv.className = `message ${type}`;
 
     const senderDiv = document.createElement('div');
     senderDiv.className = 'sender';
-    senderDiv.textContent = messageData.sender;
+    senderDiv.textContent = sender;
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'content';
-    contentDiv.textContent = messageData.message;
+    contentDiv.textContent = text;
 
     const timeDiv = document.createElement('div');
     timeDiv.className = 'timestamp';
-    timeDiv.textContent = messageData.timestamp;
+    timeDiv.textContent = getCurrentTime();
 
     messageDiv.appendChild(senderDiv);
     messageDiv.appendChild(contentDiv);
     messageDiv.appendChild(timeDiv);
 
+    messagesContainer.appendChild(messageDiv);
+    scrollToBottom();
+
     return messageDiv;
 }
 
-function addTypingIndicator() {
+function scrollToBottom() {
     const messagesContainer = document.getElementById('chat-messages');
-
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'message agent typing';
-    typingDiv.innerHTML = `
-        <div class="sender">Sir Ellery</div>
-        <div class="content">
-            <span class="typing-dots">
-                <span>.</span><span>.</span><span>.</span>
-            </span>
-        </div>
-    `;
-
-    messagesContainer.appendChild(typingDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    setTimeout(() => {
-        typingDiv.remove();
-        const finalMessage = createMessageElement({
-            sender: 'Sir Ellery',
-            message: 'Dreamer just submitted Round 2 expansion. Routing to Skeptic now. Lightning active.',
-            type: 'agent',
-            timestamp: getCurrentTime()
-        });
-        messagesContainer.appendChild(finalMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }, 2000);
 }
 
 function getCurrentTime() {
