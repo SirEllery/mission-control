@@ -11,7 +11,7 @@ const STATUS_CONFIG = {
 // ═══ PLASMA SHELL — lightning arcs flickering around the hexagon ═══
 function createPlasmaShell(agent, bodyHeight, floatY) {
     const shell = new THREE.Group();
-    const arcCount = 12;
+    const arcCount = 20;
     const arcs = [];
 
     for (let i = 0; i < arcCount; i++) {
@@ -21,24 +21,35 @@ function createPlasmaShell(agent, bodyHeight, floatY) {
             points.push(new THREE.Vector3(0, s * 0.1, 0));
         }
         const curve = new THREE.CatmullRomCurve3(points);
-        const geo = new THREE.TubeGeometry(curve, 8, 0.015, 4, false);
+
+        // White-hot core like real lightning
+        const geo = new THREE.TubeGeometry(curve, 8, 0.018, 4, false);
         const mat = new THREE.MeshBasicMaterial({
-            color: agent.color, transparent: true, opacity: 0.7,
+            color: 0xffffff, transparent: true, opacity: 0.8,
             blending: THREE.AdditiveBlending, side: THREE.DoubleSide
         });
         const mesh = new THREE.Mesh(geo, mat);
         shell.add(mesh);
 
-        // Outer glow for each arc
-        const glowGeo = new THREE.TubeGeometry(curve, 8, 0.06, 4, false);
+        // Electric blue glow around each arc
+        const glowGeo = new THREE.TubeGeometry(curve, 8, 0.07, 4, false);
         const glowMat = new THREE.MeshBasicMaterial({
-            color: agent.color, transparent: true, opacity: 0.15,
+            color: 0x6699ff, transparent: true, opacity: 0.2,
             blending: THREE.AdditiveBlending, side: THREE.DoubleSide
         });
         const glowMesh = new THREE.Mesh(glowGeo, glowMat);
         shell.add(glowMesh);
 
-        arcs.push({ mesh, mat, glowMesh, glowMat, phase: Math.random() * Math.PI * 2 });
+        // Outer bloom halo
+        const bloomGeo = new THREE.TubeGeometry(curve, 8, 0.15, 4, false);
+        const bloomMat = new THREE.MeshBasicMaterial({
+            color: 0x4466cc, transparent: true, opacity: 0.06,
+            blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        });
+        const bloomMesh = new THREE.Mesh(bloomGeo, bloomMat);
+        shell.add(bloomMesh);
+
+        arcs.push({ mesh, mat, glowMesh, glowMat, bloomMesh, bloomMat, phase: Math.random() * Math.PI * 2 });
     }
 
     return { group: shell, arcs };
@@ -79,28 +90,40 @@ function updatePlasmaShell(plasma, agent, bodyHeight, floatY, time) {
         }
 
         const curve = new THREE.CatmullRomCurve3(points);
-        const newGeo = new THREE.TubeGeometry(curve, 8, 0.015, 4, false);
+        const newGeo = new THREE.TubeGeometry(curve, 8, 0.018, 4, false);
         arc.mesh.geometry.dispose();
         arc.mesh.geometry = newGeo;
 
-        const newGlowGeo = new THREE.TubeGeometry(curve, 8, 0.06, 4, false);
+        const newGlowGeo = new THREE.TubeGeometry(curve, 8, 0.07, 4, false);
         arc.glowMesh.geometry.dispose();
         arc.glowMesh.geometry = newGlowGeo;
 
-        // Flicker
+        const newBloomGeo = new THREE.TubeGeometry(curve, 8, 0.15, 4, false);
+        arc.bloomMesh.geometry.dispose();
+        arc.bloomMesh.geometry = newBloomGeo;
+
+        // Flicker like real lightning
         const flicker = Math.random();
-        if (flicker > 0.75) {
-            arc.mat.opacity = 0.9;
-            arc.glowMat.opacity = 0.3;
+        if (flicker > 0.8) {
+            // BRIGHT flash
+            arc.mat.opacity = 1.0;
+            arc.glowMat.opacity = 0.5;
+            arc.bloomMat.opacity = 0.15;
         } else if (flicker > 0.3) {
-            arc.mat.opacity = 0.5;
-            arc.glowMat.opacity = 0.12;
+            // Normal
+            arc.mat.opacity = 0.7;
+            arc.glowMat.opacity = 0.25;
+            arc.bloomMat.opacity = 0.06;
         } else if (flicker > 0.1) {
-            arc.mat.opacity = 0.2;
-            arc.glowMat.opacity = 0.05;
+            // Dim
+            arc.mat.opacity = 0.3;
+            arc.glowMat.opacity = 0.1;
+            arc.bloomMat.opacity = 0.03;
         } else {
+            // Momentary blackout
             arc.mat.opacity = 0.0;
             arc.glowMat.opacity = 0.0;
+            arc.bloomMat.opacity = 0.0;
         }
     });
 }
@@ -461,6 +484,7 @@ export function updatePillarData(pillars, newAgents) {
             p.plasma.arcs.forEach(arc => {
                 arc.mesh.geometry.dispose(); arc.mesh.material.dispose();
                 arc.glowMesh.geometry.dispose(); arc.glowMesh.material.dispose();
+                arc.bloomMesh.geometry.dispose(); arc.bloomMesh.material.dispose();
             });
             p.plasma = null;
         }
