@@ -40,23 +40,13 @@ export function createConnections(agents, connections, activeConversations, pill
                 lastUpdate: 0
             });
         } else {
-            // Dormant — very faint
-            const lineGeo = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, 0)
-            ]);
-            const lineMat = new THREE.LineBasicMaterial({
-                color: 0x334466, transparent: true, opacity: 0.03,
-                blending: THREE.AdditiveBlending
-            });
-            group.add(new THREE.Line(lineGeo, lineMat));
-
+            // Dormant — completely invisible, no line
             connectionObjects.push({
                 line: group,
                 isActive: false,
                 fromId: connection.from,
                 toId: connection.to,
-                dormantLine: group.children[0]
+                dormantLine: null
             });
         }
     });

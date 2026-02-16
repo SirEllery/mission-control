@@ -1,12 +1,109 @@
 import * as THREE from 'three';
 
 const STATUS_CONFIG = {
-    active:    { emissive: 1.0,  opacity: 0.95, lightIntensity: 3,   haloOpacity: 0.12, pulse: true,  beam: true  },
-    idle:      { emissive: 0.15, opacity: 0.5,  lightIntensity: 0.5, haloOpacity: 0.04, pulse: false, beam: false },
-    error:     { emissive: 0.6,  opacity: 0.8,  lightIntensity: 2,   haloOpacity: 0.10, pulse: false, beam: false },
-    completed: { emissive: 0.1,  opacity: 0.35, lightIntensity: 0.3, haloOpacity: 0.02, pulse: false, beam: false },
-    offline:   { emissive: 0.0,  opacity: 0.2,  lightIntensity: 0,   haloOpacity: 0.0,  pulse: false, beam: false }
+    active:    { emissive: 1.0,  opacity: 0.95, lightIntensity: 3,   haloOpacity: 0.12, pulse: true  },
+    idle:      { emissive: 0.7,  opacity: 0.9,  lightIntensity: 2,   haloOpacity: 0.08, pulse: false },
+    error:     { emissive: 0.6,  opacity: 0.8,  lightIntensity: 2,   haloOpacity: 0.10, pulse: false },
+    completed: { emissive: 0.5,  opacity: 0.7,  lightIntensity: 1.5, haloOpacity: 0.06, pulse: false },
+    offline:   { emissive: 0.3,  opacity: 0.5,  lightIntensity: 0.5, haloOpacity: 0.03, pulse: false }
 };
+
+// ═══ PLASMA SHELL — lightning arcs flickering around the hexagon ═══
+function createPlasmaShell(agent, bodyHeight, floatY) {
+    const shell = new THREE.Group();
+    const arcCount = 12;
+    const arcs = [];
+
+    for (let i = 0; i < arcCount; i++) {
+        const points = [];
+        const segments = 8;
+        for (let s = 0; s <= segments; s++) {
+            points.push(new THREE.Vector3(0, s * 0.1, 0));
+        }
+        const curve = new THREE.CatmullRomCurve3(points);
+        const geo = new THREE.TubeGeometry(curve, 8, 0.015, 4, false);
+        const mat = new THREE.MeshBasicMaterial({
+            color: agent.color, transparent: true, opacity: 0.7,
+            blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        shell.add(mesh);
+
+        // Outer glow for each arc
+        const glowGeo = new THREE.TubeGeometry(curve, 8, 0.06, 4, false);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: agent.color, transparent: true, opacity: 0.15,
+            blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        });
+        const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+        shell.add(glowMesh);
+
+        arcs.push({ mesh, mat, glowMesh, glowMat, phase: Math.random() * Math.PI * 2 });
+    }
+
+    return { group: shell, arcs };
+}
+
+function updatePlasmaShell(plasma, agent, bodyHeight, floatY, time) {
+    if (!plasma) return;
+    const radius = 0.95;
+    const centerY = floatY + bodyHeight / 2;
+
+    plasma.arcs.forEach((arc, i) => {
+        // Each arc crawls around the hex surface
+        const angle1 = (i / plasma.arcs.length) * Math.PI * 2 + time * 1.5 + arc.phase;
+        const angle2 = angle1 + 0.4 + Math.sin(time * 3 + arc.phase) * 0.3;
+        const yOff1 = (Math.sin(time * 2.5 + arc.phase) * 0.5) * bodyHeight * 0.45;
+        const yOff2 = (Math.sin(time * 2.5 + arc.phase + 1.5) * 0.5) * bodyHeight * 0.45;
+
+        const start = new THREE.Vector3(
+            Math.cos(angle1) * radius, centerY + yOff1, Math.sin(angle1) * radius
+        );
+        const end = new THREE.Vector3(
+            Math.cos(angle2) * radius, centerY + yOff2, Math.sin(angle2) * radius
+        );
+
+        // Generate jagged path between start and end
+        const points = [];
+        const segs = 8;
+        for (let s = 0; s <= segs; s++) {
+            const t = s / segs;
+            const p = start.clone().lerp(end, t);
+            if (s > 0 && s < segs) {
+                const jitter = 0.12;
+                p.x += (Math.random() - 0.5) * jitter;
+                p.y += (Math.random() - 0.5) * jitter;
+                p.z += (Math.random() - 0.5) * jitter;
+            }
+            points.push(p);
+        }
+
+        const curve = new THREE.CatmullRomCurve3(points);
+        const newGeo = new THREE.TubeGeometry(curve, 8, 0.015, 4, false);
+        arc.mesh.geometry.dispose();
+        arc.mesh.geometry = newGeo;
+
+        const newGlowGeo = new THREE.TubeGeometry(curve, 8, 0.06, 4, false);
+        arc.glowMesh.geometry.dispose();
+        arc.glowMesh.geometry = newGlowGeo;
+
+        // Flicker
+        const flicker = Math.random();
+        if (flicker > 0.75) {
+            arc.mat.opacity = 0.9;
+            arc.glowMat.opacity = 0.3;
+        } else if (flicker > 0.3) {
+            arc.mat.opacity = 0.5;
+            arc.glowMat.opacity = 0.12;
+        } else if (flicker > 0.1) {
+            arc.mat.opacity = 0.2;
+            arc.glowMat.opacity = 0.05;
+        } else {
+            arc.mat.opacity = 0.0;
+            arc.glowMat.opacity = 0.0;
+        }
+    });
+}
 
 export function createPillars(agents) {
     const pillars = [];
@@ -62,7 +159,7 @@ export function createPillars(agents) {
         healthRing.rotation.x = -Math.PI / 2; healthRing.position.y = floatY + 0.05;
         pillarGroup.add(healthRing);
 
-        // Halo — reduced
+        // Halo
         const haloMat = new THREE.MeshBasicMaterial({
             color: agent.color, transparent: true, opacity: config.haloOpacity,
             side: THREE.BackSide, blending: THREE.AdditiveBlending
@@ -71,38 +168,35 @@ export function createPillars(agents) {
         halo.position.y = floatY + bodyHeight / 2;
         pillarGroup.add(halo);
 
-        // Beam — shorter
-        let beam = null, beamGlow = null, beamCounter = null;
-        if (config.beam) {
-            const beamHeight = agent.height >= 6 ? 6 : 4;
-            const beamBase = floatY + bodyHeight + 0.25;
+        // Beam — ALWAYS ON for all agents
+        const beamHeight = agent.height >= 6 ? 6 : 4;
+        const beamBase = floatY + bodyHeight + 0.25;
 
-            beam = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.10, beamHeight, 8, 1, true),
-                new THREE.MeshBasicMaterial({ color: agent.color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-            );
-            beam.position.y = beamBase + beamHeight / 2;
-            pillarGroup.add(beam);
+        const beam = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.03, 0.10, beamHeight, 8, 1, true),
+            new THREE.MeshBasicMaterial({ color: agent.color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+        );
+        beam.position.y = beamBase + beamHeight / 2;
+        pillarGroup.add(beam);
 
-            beamGlow = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.12, 0.3, beamHeight, 8, 1, true),
-                new THREE.MeshBasicMaterial({ color: agent.color, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-            );
-            beamGlow.position.y = beamBase + beamHeight / 2;
-            pillarGroup.add(beamGlow);
+        const beamGlow = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.3, beamHeight, 8, 1, true),
+            new THREE.MeshBasicMaterial({ color: agent.color, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+        );
+        beamGlow.position.y = beamBase + beamHeight / 2;
+        pillarGroup.add(beamGlow);
 
-            // COUNTER — floating above beam (no background, raw numbers)
-            const cc = createCounterCanvas(agent);
-            const ct = new THREE.CanvasTexture(cc);
-            ct.minFilter = THREE.LinearFilter;
-            beamCounter = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, alphaTest: 0.01 }));
-            beamCounter.position.y = beamBase + beamHeight + 2.0;
-            beamCounter.scale.set(10, 5, 1);
-            beamCounter._canvas = cc; beamCounter._texture = ct;
-            pillarGroup.add(beamCounter);
-        }
+        // COUNTER — ALWAYS ON
+        const cc = createCounterCanvas(agent);
+        const ct = new THREE.CanvasTexture(cc);
+        ct.minFilter = THREE.LinearFilter;
+        const beamCounter = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, alphaTest: 0.01 }));
+        beamCounter.position.y = beamBase + beamHeight + 2.0;
+        beamCounter.scale.set(10, 5, 1);
+        beamCounter._canvas = cc; beamCounter._texture = ct;
+        pillarGroup.add(beamCounter);
 
-        // INFO PANEL — MAXIMUM READABILITY
+        // INFO PANEL
         const ic = createInfoPanelCanvas(agent);
         const it = new THREE.CanvasTexture(ic);
         it.minFilter = THREE.LinearFilter;
@@ -112,15 +206,9 @@ export function createPillars(agents) {
         infoPanel._canvas = ic; infoPanel._texture = it;
         pillarGroup.add(infoPanel);
 
-        // Name label
-        const lc = createLabelCanvas(agent.name, agent.color);
-        const lt = new THREE.CanvasTexture(lc);
-        const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lt, transparent: true, alphaTest: 0.1 }));
-        label.position.y = floatY + bodyHeight + (config.beam ? 0.5 : 1.5);
-        label.scale.set(5, 1.5, 1);
-        pillarGroup.add(label);
+        // NO standalone name label — name is on the panel only
 
-        // Point light — reduced intensity
+        // Point light
         const pointLight = new THREE.PointLight(agent.color, config.lightIntensity * 0.7, 10);
         pointLight.position.y = floatY + bodyHeight + 0.5;
         pillarGroup.add(pointLight);
@@ -132,10 +220,17 @@ export function createPillars(agents) {
             pillarGroup.add(errorLight);
         }
 
+        // Plasma shell — only for active agents
+        let plasma = null;
+        if (agent.status === 'active') {
+            plasma = createPlasmaShell(agent, bodyHeight, floatY);
+            pillarGroup.add(plasma.group);
+        }
+
         pillars.push({
             group: pillarGroup, body, material: bodyMat, cap, capMat, healthRing, shadow,
             halo, haloMaterial: haloMat, beam, beamGlow, beamCounter,
-            infoPanel, label, light: pointLight, errorLight,
+            infoPanel, light: pointLight, errorLight, plasma,
             agent, config, floatY, floatPhase: Math.random() * Math.PI * 2
         });
     });
@@ -152,18 +247,22 @@ export function animatePillars(pillars, elapsedTime) {
         p.cap.position.y = baseY + p.agent.height + 0.125;
         p.healthRing.position.y = baseY + 0.05;
         p.halo.position.y = baseY + p.agent.height / 2;
-        p.label.position.y = baseY + p.agent.height + (p.config.beam ? 0.5 : 1.5);
         p.infoPanel.position.y = baseY + p.agent.height * 0.3;
 
-        if (p.beam) {
-            const bh = p.agent.height >= 6 ? 6 : 4;
-            const bb = baseY + p.agent.height + 0.25;
-            p.beam.position.y = bb + bh / 2;
-            p.beamGlow.position.y = bb + bh / 2;
-            if (p.beamCounter) p.beamCounter.position.y = bb + bh + 2.0;
-        }
+        // Beam + counter always animate
+        const bh = p.agent.height >= 6 ? 6 : 4;
+        const bb = baseY + p.agent.height + 0.25;
+        p.beam.position.y = bb + bh / 2;
+        p.beamGlow.position.y = bb + bh / 2;
+        p.beamCounter.position.y = bb + bh + 2.0;
 
-        // Only hex body pulses
+        p.beam.material.opacity = 0.35 + 0.15 * Math.sin(elapsedTime * 4 + phase);
+        p.beamGlow.material.opacity = 0.03 + 0.02 * Math.sin(elapsedTime * 4 + phase);
+
+        updateCounterCanvas(p.beamCounter._canvas, p.agent, elapsedTime);
+        p.beamCounter._texture.needsUpdate = true;
+
+        // Pulse for active, subtle breathe for others
         if (p.config.pulse) {
             p.material.emissiveIntensity = 0.6 + 0.25 * Math.sin(elapsedTime * 3 + phase);
             p.haloMaterial.opacity = 0.08 + 0.04 * Math.sin(elapsedTime * 3 + phase);
@@ -173,25 +272,21 @@ export function animatePillars(pillars, elapsedTime) {
             p.material.emissiveIntensity = f;
             if (p.errorLight) p.errorLight.intensity = f * 3;
         } else {
-            p.material.emissiveIntensity = p.config.emissive + 0.04 * Math.sin(elapsedTime * 0.5 + phase);
+            p.material.emissiveIntensity = p.config.emissive + 0.08 * Math.sin(elapsedTime * 0.5 + phase);
         }
 
         p.healthRing.rotation.z = elapsedTime * 0.4;
-
-        if (p.beam) {
-            p.beam.material.opacity = 0.35 + 0.15 * Math.sin(elapsedTime * 4 + phase);
-            p.beamGlow.material.opacity = 0.03 + 0.02 * Math.sin(elapsedTime * 4 + phase);
-            if (p.beamCounter) {
-                updateCounterCanvas(p.beamCounter._canvas, p.agent, elapsedTime);
-                p.beamCounter._texture.needsUpdate = true;
-            }
-        }
         if (p.cap) p.capMat.emissiveIntensity = p.config.emissive * (0.7 + 0.2 * Math.sin(elapsedTime * 5 + phase));
         p.shadow.material.opacity = p.config.emissive * (0.03 + 0.015 * Math.sin(elapsedTime * 2 + phase));
+
+        // Animate plasma shell if active
+        if (p.plasma) {
+            updatePlasmaShell(p.plasma, p.agent, p.agent.height, baseY, elapsedTime);
+        }
     });
 }
 
-// ═══ INFO PANEL — FILL THE PANEL, HUGE TEXT ═══
+// ═══ INFO PANEL ═══
 function createInfoPanelCanvas(agent) {
     const W = 1400, H = 1200;
     const canvas = document.createElement('canvas');
@@ -229,7 +324,7 @@ function createInfoPanelCanvas(agent) {
     const task = agent.currentTask || '—';
     ctx.fillText(task.length > 26 ? task.substring(0, 26) + '…' : task, 40, 190);
 
-    // Data rows — TWO COLUMN LAYOUT
+    // Data rows
     const rows = [
         ['Model', agent.model],
         ['Role', agent.role],
@@ -246,7 +341,6 @@ function createInfoPanelCanvas(agent) {
     const colW = (W - 80) / 2;
     let y = 275;
     for (let i = 0; i < rows.length; i += 2) {
-        // Left column
         const [lLabel, lValue] = rows[i];
         ctx.fillStyle = 'rgba(255,255,255,0.65)';
         ctx.font = '45px "Courier New", monospace';
@@ -255,7 +349,6 @@ function createInfoPanelCanvas(agent) {
         ctx.font = 'bold 50px "Courier New", monospace';
         ctx.fillText(lValue, 40, y + 58);
 
-        // Right column
         if (i + 1 < rows.length) {
             const [rLabel, rValue] = rows[i + 1];
             ctx.fillStyle = 'rgba(255,255,255,0.65)';
@@ -271,7 +364,7 @@ function createInfoPanelCanvas(agent) {
     return canvas;
 }
 
-// ═══ COUNTER — Raw floating numbers, no background ═══
+// ═══ COUNTER ═══
 function createCounterCanvas(agent) {
     const canvas = document.createElement('canvas');
     canvas.width = 900; canvas.height = 450;
@@ -288,7 +381,6 @@ function updateCounterCanvas(canvas, agent, time) {
 
     ctx.textAlign = 'center';
 
-    // Tokens
     ctx.fillStyle = agent.color;
     ctx.font = 'bold 80px "Courier New", monospace';
     ctx.fillText(formatTokens(tokens), W / 2, 85);
@@ -297,7 +389,6 @@ function updateCounterCanvas(canvas, agent, time) {
     ctx.font = '26px "Courier New", monospace';
     ctx.fillText('TOKENS', W / 2, 118);
 
-    // Cost
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 68px "Courier New", monospace';
     ctx.fillText(agent.cost || '$0.00', W / 2, 210);
@@ -306,7 +397,6 @@ function updateCounterCanvas(canvas, agent, time) {
     ctx.font = '24px "Courier New", monospace';
     ctx.fillText('COST', W / 2, 242);
 
-    // Uptime
     ctx.fillStyle = agent.color;
     ctx.font = 'bold 50px "Courier New", monospace';
     ctx.fillText(agent.uptime || '—', W / 2, 330);
@@ -318,18 +408,6 @@ function updateCounterCanvas(canvas, agent, time) {
     ctx.textAlign = 'left';
 }
 
-function createLabelCanvas(text, color) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 700; canvas.height = 160;
-    ctx.font = 'bold 60px "Courier New", monospace';
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = color; ctx.shadowBlur = 4;
-    ctx.fillText(text.toUpperCase(), 350, 80);
-    return canvas;
-}
-
 function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
@@ -339,21 +417,19 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
 }
 
-// Live data update — refreshes agent data on pillars without rebuilding scene
+// ═══ LIVE UPDATE ═══
 export function updatePillarData(pillars, newAgents) {
     if (!pillars || !newAgents) return;
     for (const p of pillars) {
         const updated = newAgents.find(a => a.id === p.agent.id);
         if (!updated) continue;
-        
-        // Update agent data
-        const old = p.agent;
+
+        const oldStatus = p.agent.status;
         Object.assign(p.agent, updated);
-        
-        // Update status config
+
         const newConfig = STATUS_CONFIG[updated.status] || STATUS_CONFIG.idle;
         p.config = newConfig;
-        
+
         // Refresh info panel
         if (p.infoPanel && p.infoPanel._canvas) {
             const ctx = p.infoPanel._canvas.getContext('2d');
@@ -369,47 +445,27 @@ export function updatePillarData(pillars, newAgents) {
             p.healthRing.material.color.set(hc);
         }
 
-        // Update material emissive intensity for status changes
+        // Update material
         if (p.material) {
             p.material.emissiveIntensity = newConfig.emissive;
             p.material.opacity = newConfig.opacity;
         }
 
-        // Beam + counter: create when active, remove when not
-        if (newConfig.beam && !p.beam) {
-            const bodyHeight = p.agent.height;
-            const beamHeight = bodyHeight >= 6 ? 6 : 4;
-            const beamBase = p.floatY + bodyHeight + 0.25;
-
-            p.beam = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.10, beamHeight, 8, 1, true),
-                new THREE.MeshBasicMaterial({ color: p.agent.color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-            );
-            p.beam.position.y = beamBase + beamHeight / 2;
-            p.group.add(p.beam);
-
-            p.beamGlow = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.12, 0.3, beamHeight, 8, 1, true),
-                new THREE.MeshBasicMaterial({ color: p.agent.color, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-            );
-            p.beamGlow.position.y = beamBase + beamHeight / 2;
-            p.group.add(p.beamGlow);
-
-            const cc = createCounterCanvas(p.agent);
-            const ct = new THREE.CanvasTexture(cc);
-            ct.minFilter = THREE.LinearFilter;
-            p.beamCounter = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, alphaTest: 0.01 }));
-            p.beamCounter.position.y = beamBase + beamHeight + 2.0;
-            p.beamCounter.scale.set(10, 5, 1);
-            p.beamCounter._canvas = cc; p.beamCounter._texture = ct;
-            p.group.add(p.beamCounter);
-        } else if (!newConfig.beam && p.beam) {
-            p.group.remove(p.beam); p.beam.geometry.dispose(); p.beam.material.dispose(); p.beam = null;
-            p.group.remove(p.beamGlow); p.beamGlow.geometry.dispose(); p.beamGlow.material.dispose(); p.beamGlow = null;
-            if (p.beamCounter) { p.group.remove(p.beamCounter); p.beamCounter.material.map.dispose(); p.beamCounter.material.dispose(); p.beamCounter = null; }
+        // Plasma shell: create when active, remove when not
+        if (updated.status === 'active' && !p.plasma) {
+            p.plasma = createPlasmaShell(p.agent, p.agent.height, p.floatY);
+            p.group.add(p.plasma.group);
+        } else if (updated.status !== 'active' && p.plasma) {
+            p.group.remove(p.plasma.group);
+            // Dispose arc geometries
+            p.plasma.arcs.forEach(arc => {
+                arc.mesh.geometry.dispose(); arc.mesh.material.dispose();
+                arc.glowMesh.geometry.dispose(); arc.glowMesh.material.dispose();
+            });
+            p.plasma = null;
         }
 
-        // Update counter if beam exists
+        // Update counter
         if (p.beamCounter && p.beamCounter._canvas) {
             const ctx = p.beamCounter._canvas.getContext('2d');
             ctx.clearRect(0, 0, p.beamCounter._canvas.width, p.beamCounter._canvas.height);
