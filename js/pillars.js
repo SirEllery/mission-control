@@ -108,7 +108,7 @@ export function createPillars(agents) {
         it.minFilter = THREE.LinearFilter;
         const infoPanel = new THREE.Sprite(new THREE.SpriteMaterial({ map: it, transparent: true, alphaTest: 0.01, depthWrite: false }));
         infoPanel.position.set(5.0, floatY + bodyHeight * 0.3, 0);
-        infoPanel.scale.set(12, 10, 1);
+        infoPanel.scale.set(9, 7.5, 1);
         infoPanel._canvas = ic; infoPanel._texture = it;
         pillarGroup.add(infoPanel);
 
@@ -207,27 +207,27 @@ function createInfoPanelCanvas(agent) {
 
     // Agent name
     ctx.fillStyle = agent.color;
-    ctx.font = 'bold 72px "Courier New", monospace';
-    ctx.fillText(agent.name.toUpperCase(), 40, 85);
+    ctx.font = 'bold 90px "Courier New", monospace';
+    ctx.fillText(agent.name.toUpperCase(), 40, 95);
 
     // Status
-    const sc = agent.status === 'active' ? '#00ff88' : agent.status === 'error' ? '#ff4444' : agent.status === 'idle' ? '#ffaa00' : '#666';
+    const sc = agent.status === 'active' ? '#00ff88' : agent.status === 'error' ? '#ff4444' : agent.status === 'idle' ? '#ffaa00' : '#888';
     ctx.fillStyle = sc;
-    ctx.font = 'bold 52px "Courier New", monospace';
+    ctx.font = 'bold 65px "Courier New", monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(agent.status.toUpperCase(), W - 40, 85);
+    ctx.fillText(agent.status.toUpperCase(), W - 40, 95);
     ctx.textAlign = 'left';
 
     // Divider
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(40, 110); ctx.lineTo(W - 40, 110); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(40, 125); ctx.lineTo(W - 40, 125); ctx.stroke();
 
     // Task
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = '40px "Courier New", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '50px "Courier New", monospace';
     const task = agent.currentTask || '—';
-    ctx.fillText(task.length > 30 ? task.substring(0, 30) + '…' : task, 40, 165);
+    ctx.fillText(task.length > 26 ? task.substring(0, 26) + '…' : task, 40, 190);
 
     // Data rows — TWO COLUMN LAYOUT
     const rows = [
@@ -244,28 +244,28 @@ function createInfoPanelCanvas(agent) {
     ];
 
     const colW = (W - 80) / 2;
-    let y = 245;
+    let y = 275;
     for (let i = 0; i < rows.length; i += 2) {
         // Left column
         const [lLabel, lValue] = rows[i];
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.font = '36px "Courier New", monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.font = '45px "Courier New", monospace';
         ctx.fillText(lLabel, 40, y);
         ctx.fillStyle = lLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
-        ctx.font = 'bold 40px "Courier New", monospace';
-        ctx.fillText(lValue, 40, y + 48);
+        ctx.font = 'bold 50px "Courier New", monospace';
+        ctx.fillText(lValue, 40, y + 58);
 
         // Right column
         if (i + 1 < rows.length) {
             const [rLabel, rValue] = rows[i + 1];
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.font = '36px "Courier New", monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            ctx.font = '45px "Courier New", monospace';
             ctx.fillText(rLabel, 40 + colW, y);
             ctx.fillStyle = rLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
-            ctx.font = 'bold 40px "Courier New", monospace';
-            ctx.fillText(rValue, 40 + colW, y + 48);
+            ctx.font = 'bold 50px "Courier New", monospace';
+            ctx.fillText(rValue, 40 + colW, y + 58);
         }
-        y += 120;
+        y += 140;
     }
 
     return canvas;

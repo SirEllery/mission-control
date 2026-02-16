@@ -42,7 +42,7 @@
       "color": "#ffaa00",
       "height": 4,
       "floatHeight": 2.5,
-      "position": [-10, 0, -4]
+      "position": [-16, 0, -7]
     },
     {
       "id": "skeptic",
@@ -64,7 +64,7 @@
       "color": "#ff44ff",
       "height": 4,
       "floatHeight": 2.5,
-      "position": [10, 0, -4]
+      "position": [16, 0, -7]
     },
     {
       "id": "researcher",
@@ -86,7 +86,7 @@
       "color": "#00ddff",
       "height": 3,
       "floatHeight": 2.0,
-      "position": [-10, 0, 8]
+      "position": [-16, 0, 14]
     }
   ],
   "connections": [

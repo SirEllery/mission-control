@@ -4,12 +4,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createGrid } from './grid.js?v=11';
-import { createPillars, animatePillars } from './pillars.js?v=11';
-import { createConnections, animateConnections } from './connections.js?v=11';
-import { createParticles } from './particles.js?v=11';
-import { createDataPanels, updateDataPanels } from './panels.js?v=11';
-import { initializeChat } from './chat.js?v=11';
+import { createGrid } from './grid.js?v=12';
+import { createPillars, animatePillars } from './pillars.js?v=12';
+import { createConnections, animateConnections } from './connections.js?v=12';
+import { createParticles } from './particles.js?v=12';
+import { createDataPanels, updateDataPanels } from './panels.js?v=12';
+import { initializeChat } from './chat.js?v=12';
 
 class Dashboard {
     constructor() {
@@ -42,7 +42,7 @@ class Dashboard {
 
     async loadAgentData() {
         try {
-            const response = await fetch('data/mock-agents.json?v=11');
+            const response = await fetch('data/mock-agents.json?v=12');
             this.agentData = await response.json();
         } catch (error) {
             console.error('Failed to load agent data:', error);
@@ -56,7 +56,7 @@ class Dashboard {
 
     setupCamera() {
         this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
-        this.camera.position.set(16, 12, 24);
+        this.camera.position.set(20, 14, 30);
         this.camera.lookAt(0, 5, 0);
     }
 
@@ -66,7 +66,7 @@ class Dashboard {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ReinhardToneMapping;
-        this.renderer.toneMappingExposure = 0.5;
+        this.renderer.toneMappingExposure = 0.7;
 
         document.getElementById('canvas-container').appendChild(this.renderer.domElement);
     }
@@ -75,8 +75,8 @@ class Dashboard {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.06;
-        this.controls.minDistance = 5;
-        this.controls.maxDistance = 60;
+        this.controls.minDistance = 3;
+        this.controls.maxDistance = 100;
         this.controls.maxPolarAngle = Math.PI * 0.48;
         this.controls.target.set(0, 5, 0);
     }
@@ -93,13 +93,13 @@ class Dashboard {
         this.composer.addPass(new RenderPass(this.scene, this.camera));
         const bloom = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.0, 0.3, 0.15
+            0.6, 0.2, 0.25
         );
         this.composer.addPass(bloom);
     }
 
     setupFog() {
-        this.scene.fog = new THREE.FogExp2(0x020208, 0.008);
+        this.scene.fog = new THREE.FogExp2(0x020208, 0.004);
     }
 
     createSceneElements() {
@@ -135,7 +135,7 @@ class Dashboard {
         animatePillars(this.pillars, t);
         animateConnections(this.connections, t, this.pillars);
 
-        // Animate floating orbs
+        // Animate floating orbs + twinkling stars
         if (this.particles) {
             this.particles.children.forEach(child => {
                 if (child.userData && child.userData.floatSpeed) {
@@ -143,6 +143,12 @@ class Dashboard {
                     child.position.y = d.baseY + Math.sin(t * d.floatSpeed + d.floatPhase) * 0.4;
                     child.rotation.x += d.rotSpeed * 0.008;
                     child.rotation.y += d.rotSpeed * 0.012;
+                }
+                if (child.userData && child.userData.isTwinkle) {
+                    const d = child.userData;
+                    child.material.opacity = d.baseOpacity + 0.3 * Math.sin(t * d.twinkleSpeed + d.twinklePhase);
+                    const s = 1.2 + 0.5 * Math.sin(t * d.twinkleSpeed * 0.7 + d.twinklePhase);
+                    child.scale.set(s, s, 1);
                 }
             });
         }

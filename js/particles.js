@@ -89,5 +89,73 @@ export function createParticles() {
 
     group.add(new THREE.Points(dustGeo, dustMat));
 
+    // ═══ STAR FIELD ═══
+    const starCount = 600;
+    const starGeo = new THREE.BufferGeometry();
+    const starPositions = [];
+    const starSizes = [];
+
+    for (let i = 0; i < starCount; i++) {
+        // Spread stars across a large sphere
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = 80 + Math.random() * 120;
+        starPositions.push(
+            r * Math.sin(phi) * Math.cos(theta),
+            Math.abs(r * Math.cos(phi)) * 0.5 + 10, // bias upward, above horizon
+            r * Math.sin(phi) * Math.sin(theta)
+        );
+        starSizes.push(i < 40 ? 2.5 + Math.random() * 3.0 : 0.5 + Math.random() * 1.5);
+    }
+
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    starGeo.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
+
+    const starMat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.2,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+    });
+
+    const stars = new THREE.Points(starGeo, starMat);
+    stars.userData.isStars = true;
+    stars.userData.starSizes = starSizes;
+    group.add(stars);
+
+    // ═══ LARGE TWINKLING STARS (bright accent stars) ═══
+    const twinkleCount = 25;
+    for (let i = 0; i < twinkleCount; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = 70 + Math.random() * 80;
+
+        const starMesh = new THREE.Sprite(new THREE.SpriteMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6 + Math.random() * 0.4,
+            blending: THREE.AdditiveBlending
+        }));
+
+        starMesh.position.set(
+            r * Math.sin(phi) * Math.cos(theta),
+            Math.abs(r * Math.cos(phi)) * 0.4 + 15,
+            r * Math.sin(phi) * Math.sin(theta)
+        );
+        starMesh.scale.set(1.5, 1.5, 1);
+
+        starMesh.userData = {
+            isTwinkle: true,
+            twinkleSpeed: 1.0 + Math.random() * 3.0,
+            twinklePhase: Math.random() * Math.PI * 2,
+            baseOpacity: 0.4 + Math.random() * 0.5
+        };
+
+        group.add(starMesh);
+    }
+
     return group;
 }
