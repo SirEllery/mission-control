@@ -4,12 +4,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createGrid } from './grid.js?v=12';
-import { createPillars, animatePillars } from './pillars.js?v=12';
-import { createConnections, animateConnections } from './connections.js?v=12';
-import { createParticles } from './particles.js?v=12';
-import { createDataPanels, updateDataPanels } from './panels.js?v=12';
-import { initializeChat } from './chat.js?v=12';
+import { createGrid } from './grid.js?v=18';
+import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=18';
+import { createConnections, animateConnections } from './connections.js?v=18';
+import { createParticles, animateParticles } from './particles.js?v=18';
+import { createDataPanels, updateDataPanels } from './panels.js?v=18';
+import { initializeChat } from './chat.js?v=18';
 
 class Dashboard {
     constructor() {
@@ -23,6 +23,7 @@ class Dashboard {
         this.connections = [];
         this.particles = null;
         this.clock = new THREE.Clock();
+        this.lastTime = 0;
     }
 
     async init() {
@@ -42,11 +43,38 @@ class Dashboard {
 
     async loadAgentData() {
         try {
-            const response = await fetch('data/mock-agents.json?v=12');
-            this.agentData = await response.json();
+            // Try live API first, fall back to mock data
+            const response = await fetch('/api/agents');
+            if (response.ok) {
+                this.agentData = await response.json();
+                console.log('📡 Live agent data loaded', this.agentData._live ? '(LIVE)' : '(cached)');
+            } else {
+                throw new Error('API unavailable');
+            }
         } catch (error) {
-            console.error('Failed to load agent data:', error);
+            console.warn('Live API unavailable, falling back to mock data:', error.message);
+            const response = await fetch('data/mock-agents.json?v=13');
+            this.agentData = await response.json();
         }
+    }
+
+    startLiveRefresh() {
+        // Refresh live data every 15 seconds
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/agents');
+                if (!response.ok) return;
+                const newData = await response.json();
+                this.agentData = newData;
+                
+                // Update pillar data (counters, status, info panels)
+                updatePillarData(this.pillars, newData.agents);
+                
+                console.log('📡 Live refresh', new Date().toLocaleTimeString());
+            } catch (e) {
+                // Silent fail — keep showing last data
+            }
+        }, 15000);
     }
 
     setupScene() {
@@ -55,7 +83,7 @@ class Dashboard {
     }
 
     setupCamera() {
-        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.set(20, 14, 30);
         this.camera.lookAt(0, 5, 0);
     }
@@ -99,7 +127,7 @@ class Dashboard {
     }
 
     setupFog() {
-        this.scene.fog = new THREE.FogExp2(0x020208, 0.004);
+        this.scene.fog = new THREE.FogExp2(0x020208, 0.002); // reduced so galaxy is visible at distance
     }
 
     createSceneElements() {
@@ -125,33 +153,21 @@ class Dashboard {
     setupUI() {
         initializeChat();
         createDataPanels(this.agentData.agents);
+        this.startLiveRefresh();
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
         const t = this.clock.getElapsedTime();
+        const dt = t - this.lastTime;
+        this.lastTime = t;
 
         this.controls.update();
         animatePillars(this.pillars, t);
         animateConnections(this.connections, t, this.pillars);
 
-        // Animate floating orbs + twinkling stars
-        if (this.particles) {
-            this.particles.children.forEach(child => {
-                if (child.userData && child.userData.floatSpeed) {
-                    const d = child.userData;
-                    child.position.y = d.baseY + Math.sin(t * d.floatSpeed + d.floatPhase) * 0.4;
-                    child.rotation.x += d.rotSpeed * 0.008;
-                    child.rotation.y += d.rotSpeed * 0.012;
-                }
-                if (child.userData && child.userData.isTwinkle) {
-                    const d = child.userData;
-                    child.material.opacity = d.baseOpacity + 0.3 * Math.sin(t * d.twinkleSpeed + d.twinklePhase);
-                    const s = 1.2 + 0.5 * Math.sin(t * d.twinkleSpeed * 0.7 + d.twinklePhase);
-                    child.scale.set(s, s, 1);
-                }
-            });
-        }
+        // Animate particles (stars, meteors, milky way, orbs)
+        animateParticles(this.particles, t, dt);
 
         updateDataPanels(this.camera, this.pillars);
         this.composer.render();

@@ -339,6 +339,87 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
 }
 
+// Live data update — refreshes agent data on pillars without rebuilding scene
+export function updatePillarData(pillars, newAgents) {
+    if (!pillars || !newAgents) return;
+    for (const p of pillars) {
+        const updated = newAgents.find(a => a.id === p.agent.id);
+        if (!updated) continue;
+        
+        // Update agent data
+        const old = p.agent;
+        Object.assign(p.agent, updated);
+        
+        // Update status config
+        const newConfig = STATUS_CONFIG[updated.status] || STATUS_CONFIG.idle;
+        p.config = newConfig;
+        
+        // Refresh info panel
+        if (p.infoPanel && p.infoPanel._canvas) {
+            const ctx = p.infoPanel._canvas.getContext('2d');
+            ctx.clearRect(0, 0, p.infoPanel._canvas.width, p.infoPanel._canvas.height);
+            const newCanvas = createInfoPanelCanvas(p.agent);
+            ctx.drawImage(newCanvas, 0, 0);
+            p.infoPanel._texture.needsUpdate = true;
+        }
+
+        // Update health ring color
+        if (p.healthRing) {
+            const hc = updated.errorCount > 0 ? '#ff4444' : (updated.status === 'idle' ? '#ffaa00' : '#00ff88');
+            p.healthRing.material.color.set(hc);
+        }
+
+        // Update material emissive intensity for status changes
+        if (p.material) {
+            p.material.emissiveIntensity = newConfig.emissive;
+            p.material.opacity = newConfig.opacity;
+        }
+
+        // Beam + counter: create when active, remove when not
+        if (newConfig.beam && !p.beam) {
+            const bodyHeight = p.agent.height;
+            const beamHeight = bodyHeight >= 6 ? 6 : 4;
+            const beamBase = p.floatY + bodyHeight + 0.25;
+
+            p.beam = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.10, beamHeight, 8, 1, true),
+                new THREE.MeshBasicMaterial({ color: p.agent.color, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+            );
+            p.beam.position.y = beamBase + beamHeight / 2;
+            p.group.add(p.beam);
+
+            p.beamGlow = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.3, beamHeight, 8, 1, true),
+                new THREE.MeshBasicMaterial({ color: p.agent.color, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+            );
+            p.beamGlow.position.y = beamBase + beamHeight / 2;
+            p.group.add(p.beamGlow);
+
+            const cc = createCounterCanvas(p.agent);
+            const ct = new THREE.CanvasTexture(cc);
+            ct.minFilter = THREE.LinearFilter;
+            p.beamCounter = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, alphaTest: 0.01 }));
+            p.beamCounter.position.y = beamBase + beamHeight + 2.0;
+            p.beamCounter.scale.set(10, 5, 1);
+            p.beamCounter._canvas = cc; p.beamCounter._texture = ct;
+            p.group.add(p.beamCounter);
+        } else if (!newConfig.beam && p.beam) {
+            p.group.remove(p.beam); p.beam.geometry.dispose(); p.beam.material.dispose(); p.beam = null;
+            p.group.remove(p.beamGlow); p.beamGlow.geometry.dispose(); p.beamGlow.material.dispose(); p.beamGlow = null;
+            if (p.beamCounter) { p.group.remove(p.beamCounter); p.beamCounter.material.map.dispose(); p.beamCounter.material.dispose(); p.beamCounter = null; }
+        }
+
+        // Update counter if beam exists
+        if (p.beamCounter && p.beamCounter._canvas) {
+            const ctx = p.beamCounter._canvas.getContext('2d');
+            ctx.clearRect(0, 0, p.beamCounter._canvas.width, p.beamCounter._canvas.height);
+            const nc = createCounterCanvas(p.agent);
+            ctx.drawImage(nc, 0, 0);
+            p.beamCounter._texture.needsUpdate = true;
+        }
+    }
+}
+
 function formatTokens(n) {
     if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
     if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
