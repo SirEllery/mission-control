@@ -4,12 +4,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-import { createGrid } from './grid.js?v=7';
-import { createPillars, animatePillars } from './pillars.js?v=7';
-import { createConnections, animateConnections } from './connections.js?v=7';
-import { createParticles } from './particles.js?v=7';
-import { createDataPanels, updateDataPanels } from './panels.js?v=7';
-import { initializeChat } from './chat.js?v=7';
+import { createGrid } from './grid.js?v=11';
+import { createPillars, animatePillars } from './pillars.js?v=11';
+import { createConnections, animateConnections } from './connections.js?v=11';
+import { createParticles } from './particles.js?v=11';
+import { createDataPanels, updateDataPanels } from './panels.js?v=11';
+import { initializeChat } from './chat.js?v=11';
 
 class Dashboard {
     constructor() {
@@ -42,7 +42,7 @@ class Dashboard {
 
     async loadAgentData() {
         try {
-            const response = await fetch('data/mock-agents.json?v=7');
+            const response = await fetch('data/mock-agents.json?v=11');
             this.agentData = await response.json();
         } catch (error) {
             console.error('Failed to load agent data:', error);
