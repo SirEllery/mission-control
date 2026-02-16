@@ -316,6 +316,8 @@ function createInfoPanelCanvas(agent) {
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
 
+    const MID = 620; // divider between left data and right activity
+
     // Solid background
     ctx.fillStyle = 'rgba(4, 4, 12, 0.97)';
     ctx.strokeStyle = agent.color;
@@ -331,60 +333,118 @@ function createInfoPanelCanvas(agent) {
     // Status
     const sc = agent.status === 'active' ? '#00ff88' : agent.status === 'error' ? '#ff4444' : agent.status === 'idle' ? '#ffaa00' : '#888';
     ctx.fillStyle = sc;
-    ctx.font = 'bold 65px "Courier New", monospace';
+    ctx.font = 'bold 55px "Courier New", monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(agent.status.toUpperCase(), W - 40, 95);
+    ctx.fillText(agent.status.toUpperCase(), MID - 20, 95);
     ctx.textAlign = 'left';
 
-    // Divider
+    // Full width divider
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(40, 125); ctx.lineTo(W - 40, 125); ctx.stroke();
 
-    // Task
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.font = '50px "Courier New", monospace';
-    const task = agent.currentTask || '—';
-    ctx.fillText(task.length > 26 ? task.substring(0, 26) + '…' : task, 40, 190);
-
-    // Data rows
+    // ═══ LEFT SIDE — Data fields (single column) ═══
     const rows = [
         ['Model', agent.model],
         ['Role', agent.role],
         ['Sessions', String(agent.sessions)],
         ['Messages', String(agent.messagesCount || 0)],
-        ['Total Tkns', formatTokens(agent.tokensToday || 0)],
-        ['Cost', agent.cost || '$0.00'],
         ['Errors', String(agent.errorCount || 0)],
         ['Heartbeat', agent.heartbeat ? 'ON' : 'OFF'],
-        ['Active', agent.lastActive || '—'],
-        ['Uptime', agent.uptime || '—']
+        ['Channels', agent.channels?.length ? agent.channels.join(', ') : '—']
     ];
 
-    const colW = (W - 80) / 2;
-    let y = 275;
-    for (let i = 0; i < rows.length; i += 2) {
-        const [lLabel, lValue] = rows[i];
-        ctx.fillStyle = 'rgba(255,255,255,0.65)';
-        ctx.font = '45px "Courier New", monospace';
-        ctx.fillText(lLabel, 40, y);
-        ctx.fillStyle = lLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
-        ctx.font = 'bold 50px "Courier New", monospace';
-        ctx.fillText(lValue, 40, y + 58);
+    let y = 200;
+    for (const [label, value] of rows) {
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '40px "Courier New", monospace';
+        ctx.fillText(label, 40, y);
 
-        if (i + 1 < rows.length) {
-            const [rLabel, rValue] = rows[i + 1];
-            ctx.fillStyle = 'rgba(255,255,255,0.65)';
-            ctx.font = '45px "Courier New", monospace';
-            ctx.fillText(rLabel, 40 + colW, y);
-            ctx.fillStyle = rLabel === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
-            ctx.font = 'bold 50px "Courier New", monospace';
-            ctx.fillText(rValue, 40 + colW, y + 58);
+        ctx.fillStyle = label === 'Errors' && agent.errorCount > 0 ? '#ff4444' : '#ffffff';
+        ctx.font = 'bold 44px "Courier New", monospace';
+        ctx.fillText(value, 40, y + 52);
+        y += 120;
+    }
+
+    // ═══ VERTICAL DIVIDER ═══
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(MID, 140); ctx.lineTo(MID, H - 40); ctx.stroke();
+
+    // ═══ RIGHT SIDE — Activity Feed ═══
+    ctx.fillStyle = agent.color;
+    ctx.font = 'bold 42px "Courier New", monospace';
+    ctx.fillText('ACTIVITY', MID + 30, 185);
+
+    // Thin divider under activity header
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(MID + 30, 200); ctx.lineTo(W - 40, 200); ctx.stroke();
+
+    // Activity entries
+    const activities = agent._activities || [];
+    const maxLineWidth = W - MID - 70;
+    let ay = 250;
+    const lineHeight = 42;
+    const maxLines = 22;
+    let linesDrawn = 0;
+
+    if (activities.length === 0) {
+        // Show current task as fallback
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '36px "Courier New", monospace';
+        const task = agent.currentTask || '—';
+        const wrappedTask = wrapText(ctx, task, maxLineWidth);
+        for (const line of wrappedTask) {
+            if (linesDrawn >= maxLines) break;
+            ctx.fillText(line, MID + 30, ay);
+            ay += lineHeight;
+            linesDrawn++;
         }
-        y += 140;
+    } else {
+        for (let i = activities.length - 1; i >= 0; i--) {
+            if (linesDrawn >= maxLines) break;
+            const entry = activities[i];
+
+            // Timestamp
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.font = '28px "Courier New", monospace';
+            ctx.fillText(entry.time || '', MID + 30, ay);
+            ay += 32;
+            linesDrawn++;
+
+            // Content
+            ctx.fillStyle = entry.role === 'user' ? '#88aaff' : 'rgba(255,255,255,0.75)';
+            ctx.font = '34px "Courier New", monospace';
+            const wrapped = wrapText(ctx, entry.text || '', maxLineWidth);
+            for (const line of wrapped) {
+                if (linesDrawn >= maxLines) break;
+                ctx.fillText(line, MID + 30, ay);
+                ay += lineHeight - 4;
+                linesDrawn++;
+            }
+            ay += 12;
+        }
     }
 
     return canvas;
+}
+
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+        const test = current ? current + ' ' + word : word;
+        if (ctx.measureText(test).width > maxWidth && current) {
+            lines.push(current);
+            current = word;
+        } else {
+            current = test;
+        }
+    }
+    if (current) lines.push(current);
+    return lines;
 }
 
 // ═══ COUNTER ═══

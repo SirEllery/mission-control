@@ -54,7 +54,7 @@ async function fetchLiveAgentData() {
             },
             body: JSON.stringify({
                 tool: 'sessions_list',
-                args: { messageLimit: 1 }
+                args: { messageLimit: 3 }
             })
         });
 
@@ -100,6 +100,28 @@ async function fetchLiveAgentData() {
                             totalCost += msg.usage.cost.total;
                         }
                     }
+                }
+            }
+
+            // Extract activity feed from recent messages
+            const activities = [];
+            for (const s of sess) {
+                if (!s.messages) continue;
+                for (const msg of s.messages) {
+                    const content = msg.content;
+                    let text = '';
+                    if (Array.isArray(content)) {
+                        const textBlock = content.find(c => c.type === 'text');
+                        if (textBlock?.text) text = textBlock.text;
+                    } else if (typeof content === 'string') {
+                        text = content;
+                    }
+                    if (!text || text === 'NO_REPLY') continue;
+                    // Trim to reasonable length
+                    if (text.length > 200) text = text.substring(0, 200) + '…';
+                    const ts = msg.timestamp ? new Date(msg.timestamp) : null;
+                    const timeStr = ts ? ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                    activities.push({ role: msg.role, text, time: timeStr });
                 }
             }
 
@@ -166,6 +188,7 @@ async function fetchLiveAgentData() {
                 errorCount: 0,
                 uptime: status === 'active' ? 'LIVE' : lastSeen,
                 cost: costStr,
+                _activities: activities.slice(-6),
                 color: vis.color,
                 height: vis.height,
                 floatHeight: vis.floatHeight,
