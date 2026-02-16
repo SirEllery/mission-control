@@ -10,6 +10,7 @@ import { createConnections, animateConnections } from './connections.js?v=19';
 import { createParticles, animateParticles } from './particles.js?v=19';
 import { createDataPanels, updateDataPanels } from './panels.js?v=19';
 import { initializeChat } from './chat.js?v=19';
+import { createShips, animateShips } from './ships.js?v=1';
 
 class Dashboard {
     constructor() {
@@ -24,6 +25,7 @@ class Dashboard {
         this.particles = null;
         this.clock = new THREE.Clock();
         this.lastTime = 0;
+        this.ships = null;
     }
 
     async init() {
@@ -148,6 +150,9 @@ class Dashboard {
 
         this.particles = createParticles();
         this.scene.add(this.particles);
+
+        // Spaceships
+        this.ships = createShips();
     }
 
     setupUI() {
@@ -168,6 +173,9 @@ class Dashboard {
 
         // Animate particles (stars, meteors, milky way, orbs)
         animateParticles(this.particles, t, dt);
+
+        // Spaceships
+        animateShips(this.ships, this.scene, t, dt);
 
         updateDataPanels(this.camera, this.pillars);
         this.composer.render();
