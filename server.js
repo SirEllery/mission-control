@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { appendFileSync, mkdirSync, existsSync } from 'node:fs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -16,6 +16,173 @@ const CONVO_DIR = join(__dirname, 'data', 'conversations');
 for (const d of [MEDIA_DIR, CONVO_DIR]) {
     if (!existsSync(d)) mkdirSync(d, { recursive: true });
 }
+
+// ═══ PIN AUTH ═══
+const PIN_HASH = createHash('sha256').update(process.env.MC_PIN || 'REDACTED').digest('hex');
+const validSessions = new Set();
+
+function parseCookies(req) {
+    const cookies = {};
+    (req.headers.cookie || '').split(';').forEach(c => {
+        const [k, v] = c.trim().split('=');
+        if (k) cookies[k] = v;
+    });
+    return cookies;
+}
+
+function isAuthenticated(req) {
+    const cookies = parseCookies(req);
+    return cookies.mc_session && validSessions.has(cookies.mc_session);
+}
+
+const LOGIN_PAGE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mission Control — Access</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #020208;
+    color: #c0c8d8;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+.login-box {
+    text-align: center;
+    padding: 40px;
+}
+.login-box h1 {
+    font-size: 14px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: rgba(100, 200, 255, 0.5);
+    margin-bottom: 40px;
+    font-weight: 400;
+}
+.pin-inputs {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+.pin-inputs input {
+    width: 52px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(100, 200, 255, 0.15);
+    border-radius: 10px;
+    color: #00ff88;
+    font-size: 28px;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    -webkit-text-security: disc;
+    font-family: monospace;
+}
+.pin-inputs input:focus {
+    border-color: rgba(100, 200, 255, 0.5);
+    background: rgba(100, 200, 255, 0.05);
+    box-shadow: 0 0 20px rgba(100, 200, 255, 0.1);
+}
+.pin-inputs input.error {
+    border-color: rgba(255, 60, 60, 0.6);
+    animation: shake 0.4s ease;
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+.status {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(100, 200, 255, 0.3);
+    min-height: 20px;
+}
+.status.error { color: rgba(255, 60, 60, 0.6); }
+</style>
+</head>
+<body>
+<div class="login-box">
+    <h1>Mission Control</h1>
+    <div class="pin-inputs">
+        <input type="tel" maxlength="1" inputmode="numeric" autofocus>
+        <input type="tel" maxlength="1" inputmode="numeric">
+        <input type="tel" maxlength="1" inputmode="numeric">
+        <input type="tel" maxlength="1" inputmode="numeric">
+    </div>
+    <div class="status" id="status">Enter access code</div>
+</div>
+<script>
+const inputs = document.querySelectorAll('.pin-inputs input');
+const status = document.getElementById('status');
+
+inputs.forEach((inp, i) => {
+    inp.addEventListener('input', (e) => {
+        const val = e.target.value.replace(/\\D/g, '');
+        e.target.value = val;
+        if (val && i < inputs.length - 1) {
+            inputs[i + 1].focus();
+        }
+        // Auto-submit when all 4 filled
+        const pin = [...inputs].map(x => x.value).join('');
+        if (pin.length === 4) submit(pin);
+    });
+    inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !inp.value && i > 0) {
+            inputs[i - 1].focus();
+            inputs[i - 1].value = '';
+        }
+    });
+    // Handle paste
+    inp.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData.getData('text') || '').replace(/\\D/g, '');
+        for (let j = 0; j < 4 && j < text.length; j++) {
+            inputs[j].value = text[j];
+        }
+        if (text.length >= 4) submit(text.slice(0, 4));
+        else if (text.length > 0) inputs[Math.min(text.length, 3)].focus();
+    });
+});
+
+async function submit(pin) {
+    try {
+        const res = await fetch('/auth/pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin })
+        });
+        if (res.ok) {
+            status.textContent = 'ACCESS GRANTED';
+            status.className = 'status';
+            status.style.color = '#00ff88';
+            setTimeout(() => window.location.reload(), 300);
+        } else {
+            status.textContent = 'DENIED';
+            status.className = 'status error';
+            inputs.forEach(i => { i.classList.add('error'); i.value = ''; });
+            inputs[0].focus();
+            setTimeout(() => {
+                inputs.forEach(i => i.classList.remove('error'));
+                status.textContent = 'Enter access code';
+                status.className = 'status';
+            }, 1500);
+        }
+    } catch {
+        status.textContent = 'CONNECTION ERROR';
+        status.className = 'status error';
+    }
+}
+</script>
+</body>
+</html>`;
 
 // Clean up conversation logs older than 5 days
 async function cleanupConversations() {
@@ -319,6 +486,38 @@ const server = createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+    // PIN auth endpoint
+    if (req.url === '/auth/pin' && req.method === 'POST') {
+        const body = await collectBody(req);
+        try {
+            const { pin } = JSON.parse(body.toString());
+            const hash = createHash('sha256').update(pin || '').digest('hex');
+            if (hash === PIN_HASH) {
+                const token = randomUUID();
+                validSessions.add(token);
+                res.writeHead(200, {
+                    'Content-Type': 'application/json',
+                    'Set-Cookie': `mc_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`
+                });
+                res.end(JSON.stringify({ ok: true }));
+            } else {
+                res.writeHead(401);
+                res.end(JSON.stringify({ error: 'Invalid PIN' }));
+            }
+        } catch {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Bad request' }));
+        }
+        return;
+    }
+
+    // Auth gate — everything below requires valid session
+    if (!isAuthenticated(req)) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(LOGIN_PAGE);
+        return;
+    }
 
     // Live agent data API
     if (req.url === '/api/agents') {
