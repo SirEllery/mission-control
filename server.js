@@ -275,6 +275,14 @@ const AGENT_VISUALS = {
     'engineer': {
         name: 'The Engineer', role: 'Builder', color: '#ff4422',
         height: 4, floatHeight: 2.5, position: [16, 0, 14]
+    },
+    'trader': {
+        name: 'The Trader', role: 'Markets', color: '#ffaa00',
+        height: 4, floatHeight: 2.5, position: [-8, 0, 24]
+    },
+    'business': {
+        name: 'Business Agent', role: 'Operations', color: '#44aaff',
+        height: 4, floatHeight: 2.5, position: [8, 0, 24]
     }
 };
 
@@ -448,7 +456,9 @@ async function fetchLiveAgentData() {
             { from: 'main', to: 'dreamer', active: false },
             { from: 'main', to: 'skeptic', active: false },
             { from: 'main', to: 'researcher', active: false },
-            { from: 'main', to: 'engineer', active: false }
+            { from: 'main', to: 'engineer', active: false },
+            { from: 'main', to: 'trader', active: false },
+            { from: 'main', to: 'business', active: false }
         ];
 
         // Mark connections active if both agents are active
