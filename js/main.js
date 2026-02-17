@@ -7,7 +7,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { createGrid } from './grid.js?v=19';
 import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=25';
 import { createConnections, animateConnections } from './connections.js?v=19';
-import { createParticles, animateParticles } from './particles.js?v=19';
+import { createParticles, animateParticles } from './particles.js?v=23';
 import { createDataPanels, updateDataPanels } from './panels.js?v=19';
 import { initializeChat } from './chat.js?v=21';
 import { createShips, animateShips } from './ships.js?v=1';

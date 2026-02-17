@@ -196,31 +196,58 @@ function createMeteorTexture() {
 export function createParticles() {
     const group = new THREE.Group();
 
-    // ═══ FLOATING ORBS ═══
+    // ═══ FLOATING ORBS (fuzzy sprites) ═══
     const orbColors = [0x00ddff, 0x00ff88, 0xff44ff, 0xffaa00, 0xff4466, 0x6666ff];
-    const orbCount = 40;
+    const orbCount = 50;
+
+    // Pre-build one fuzzy texture per color
+    const orbTextures = {};
+    for (const hex of orbColors) {
+        const c = new THREE.Color(hex);
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        const r = `${Math.round(c.r * 255)}`;
+        const g = `${Math.round(c.g * 255)}`;
+        const b = `${Math.round(c.b * 255)}`;
+        const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        grad.addColorStop(0, `rgba(${r},${g},${b},1.0)`);
+        grad.addColorStop(0.3, `rgba(${r},${g},${b},0.6)`);
+        grad.addColorStop(0.6, `rgba(${r},${g},${b},0.2)`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 128, 128);
+        orbTextures[hex] = new THREE.CanvasTexture(canvas);
+    }
 
     for (let i = 0; i < orbCount; i++) {
         const color = orbColors[Math.floor(Math.random() * orbColors.length)];
-        const size = 0.15 + Math.random() * 0.35;
-        const isCube = Math.random() > 0.5;
-        const geo = isCube
-            ? new THREE.BoxGeometry(size, size, size)
-            : new THREE.SphereGeometry(size * 0.6, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({
-            color, transparent: true, opacity: 0.3 + Math.random() * 0.4,
-            blending: THREE.AdditiveBlending
+        // Size range: tiny (0.3) up to 25% larger than old max (~0.5)
+        const scale = 0.3 + Math.random() * 0.45;
+        const mat = new THREE.SpriteMaterial({
+            map: orbTextures[color],
+            transparent: true,
+            opacity: 0.4 + Math.random() * 0.4,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
         });
-        const orb = new THREE.Mesh(geo, mat);
+        const orb = new THREE.Sprite(mat);
+        orb.scale.set(scale, scale, 1);
         const angle = Math.random() * Math.PI * 2;
         const dist = 5 + Math.random() * 35;
         orb.position.set(Math.cos(angle) * dist, 0.5 + Math.random() * 8, Math.sin(angle) * dist);
-        orb.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
         orb.userData = {
             floatSpeed: 0.3 + Math.random() * 0.5,
             floatPhase: Math.random() * Math.PI * 2,
-            rotSpeed: 0.2 + Math.random() * 0.4,
-            baseY: orb.position.y
+            baseY: orb.position.y,
+            baseX: orb.position.x,
+            baseZ: orb.position.z,
+            driftSpeedX: 0.1 + Math.random() * 0.3,
+            driftSpeedZ: 0.1 + Math.random() * 0.3,
+            driftPhaseX: Math.random() * Math.PI * 2,
+            driftPhaseZ: Math.random() * Math.PI * 2,
+            driftRadius: 0.5 + Math.random() * 2.0
         };
         group.add(orb);
     }
@@ -370,10 +397,10 @@ export function animateParticles(group, elapsedTime, deltaTime) {
         if (!d) return;
 
         // Floating orbs
-        if (d.floatSpeed) {
+        if (d.floatSpeed && d.driftRadius !== undefined) {
             child.position.y = d.baseY + Math.sin(elapsedTime * d.floatSpeed + d.floatPhase) * 0.4;
-            child.rotation.x += d.rotSpeed * 0.008;
-            child.rotation.y += d.rotSpeed * 0.012;
+            child.position.x = d.baseX + Math.sin(elapsedTime * d.driftSpeedX + d.driftPhaseX) * d.driftRadius;
+            child.position.z = d.baseZ + Math.cos(elapsedTime * d.driftSpeedZ + d.driftPhaseZ) * d.driftRadius;
         }
 
         // Twinkling stars
