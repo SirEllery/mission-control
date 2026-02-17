@@ -120,11 +120,63 @@ body {
     text-align: right;
 }
 
+.attachment-preview {
+    padding: 8px 20px;
+    border-top: 1px solid rgba(0, 229, 255, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 136, 0.08);
+    font-size: 12px;
+    color: #00ff88;
+}
+
+.attachment-preview img.thumb {
+    max-width: 40px;
+    max-height: 40px;
+    border-radius: 3px;
+}
+
+.attachment-preview #attachment-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-preview #attachment-remove {
+    background: none;
+    border: 1px solid rgba(255,68,102,0.5);
+    color: #ff4466;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+#attach-btn {
+    background: none;
+    border: 1px solid #333;
+    color: #00ddff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+#attach-btn:hover {
+    border-color: #00ddff;
+    box-shadow: 0 0 5px rgba(0, 221, 255, 0.3);
+}
+
 .chat-input {
     padding: 20px;
     border-top: 1px solid rgba(0, 229, 255, 0.2);
     display: flex;
     gap: 10px;
+    align-items: center;
 }
 
 #command-input {

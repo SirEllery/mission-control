@@ -1,12 +1,83 @@
 // Mission Control — Unified server
 // Serves static dashboard + proxies /v1/* to OpenClaw gateway + /api/agents for live data
-import { createServer } from 'http';
-import { readFile, stat } from 'fs/promises';
-import { join, extname } from 'path';
-import { fileURLToPath } from 'url';
+import { createServer } from 'node:http';
+import { readFile, stat, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
+import { join, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { appendFileSync, mkdirSync, existsSync } from 'node:fs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = 3456;
+const MEDIA_DIR = 'C:\\Users\\kylet\\.openclaw\\media\\inbound';
+const CONVO_DIR = join(__dirname, 'data', 'conversations');
+
+// Ensure directories exist
+for (const d of [MEDIA_DIR, CONVO_DIR]) {
+    if (!existsSync(d)) mkdirSync(d, { recursive: true });
+}
+
+// Clean up conversation logs older than 5 days
+async function cleanupConversations() {
+    try {
+        const files = await readdir(CONVO_DIR);
+        const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000;
+        for (const f of files) {
+            const match = f.match(/^(\d{4}-\d{2}-\d{2})\.json$/);
+            if (match && new Date(match[1]).getTime() < cutoff) {
+                await unlink(join(CONVO_DIR, f));
+                console.log(`Cleaned up old conversation log: ${f}`);
+            }
+        }
+    } catch (e) { console.error('Conversation cleanup error:', e.message); }
+}
+cleanupConversations();
+
+function logConversation(role, content, source = 'mission-control', timestamp = null) {
+    const ts = timestamp ? (typeof timestamp === 'string' ? timestamp : new Date(timestamp).toISOString()) : new Date().toISOString();
+    const dateStr = ts.slice(0, 10);
+    const entry = JSON.stringify({ timestamp: ts, source, role, content }) + '\n';
+    try {
+        appendFileSync(join(CONVO_DIR, `${dateStr}.json`), entry);
+    } catch (e) { console.error('Log error:', e.message); }
+}
+
+// Track last logged WhatsApp message timestamp per session key
+const lastLoggedTs = {};
+
+function logWhatsAppMessages(sessions) {
+    for (const s of sessions) {
+        const channel = s.channel;
+        if (channel !== 'whatsapp') continue;
+        if (!s.messages || s.messages.length === 0) continue;
+
+        const key = s.key;
+        const cutoff = lastLoggedTs[key] || 0;
+        // Messages may be in any order; sort by timestamp ascending
+        const sorted = [...s.messages]
+            .filter(m => m.timestamp)
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        let maxTs = cutoff;
+        for (const msg of sorted) {
+            const msgTs = new Date(msg.timestamp).getTime();
+            if (msgTs <= cutoff) continue;
+            if (msgTs > maxTs) maxTs = msgTs;
+
+            let text = '';
+            if (Array.isArray(msg.content)) {
+                const tb = msg.content.find(c => c.type === 'text');
+                if (tb?.text) text = tb.text;
+            } else if (typeof msg.content === 'string') {
+                text = msg.content;
+            }
+            if (!text || text === 'NO_REPLY' || text === 'HEARTBEAT_OK') continue;
+
+            logConversation(msg.role || 'unknown', text, 'whatsapp', msg.timestamp);
+        }
+        if (maxTs > cutoff) lastLoggedTs[key] = maxTs;
+    }
+}
 const GATEWAY = 'http://127.0.0.1:18789';
 const GATEWAY_TOKEN = 'REDACTED_TOKEN';
 
@@ -23,7 +94,7 @@ const AGENT_VISUALS = {
         height: 6, floatHeight: 3.0, position: [0, 0, 0]
     },
     'dreamer': {
-        name: 'The Dreamer', role: 'Expansionist', color: '#ffaa00',
+        name: 'The Dreamer', role: 'Expansionist', color: '#ffdd00',
         height: 4, floatHeight: 2.5, position: [-16, 0, -7]
     },
     'skeptic': {
@@ -31,8 +102,12 @@ const AGENT_VISUALS = {
         height: 4, floatHeight: 2.5, position: [16, 0, -7]
     },
     'researcher': {
-        name: 'The Researcher', role: 'Intelligence', color: '#00ddff',
-        height: 3, floatHeight: 2.0, position: [-16, 0, 14]
+        name: 'The Researcher', role: 'Intelligence', color: '#00ffff',
+        height: 4, floatHeight: 2.5, position: [-16, 0, 14]
+    },
+    'engineer': {
+        name: 'The Engineer', role: 'Builder', color: '#ff4422',
+        height: 4, floatHeight: 2.5, position: [16, 0, 14]
     }
 };
 
@@ -63,6 +138,10 @@ async function fetchLiveAgentData() {
         
         // tools/invoke wraps in result.details or result.content
         const sessions = data?.result?.details?.sessions || data?.result?.sessions || [];
+        
+        // Log WhatsApp messages from session data
+        logWhatsAppMessages(sessions);
+        
         const agents = [];
         const agentSessions = {};
 
@@ -201,7 +280,8 @@ async function fetchLiveAgentData() {
             { from: 'dreamer', to: 'skeptic', active: false },
             { from: 'main', to: 'dreamer', active: false },
             { from: 'main', to: 'skeptic', active: false },
-            { from: 'main', to: 'researcher', active: false }
+            { from: 'main', to: 'researcher', active: false },
+            { from: 'main', to: 'engineer', active: false }
         ];
 
         // Mark connections active if both agents are active
@@ -253,6 +333,49 @@ const server = createServer(async (req, res) => {
         return;
     }
 
+    // File upload endpoint
+    if (req.url === '/api/upload' && req.method === 'POST') {
+        try {
+            const body = await collectBody(req);
+            const contentType = req.headers['content-type'] || '';
+            const boundaryMatch = contentType.match(/boundary=(.+)/);
+            if (!boundaryMatch) { res.writeHead(400); res.end('No boundary'); return; }
+
+            const boundary = '--' + boundaryMatch[1].trim();
+            const parts = body.toString('binary').split(boundary);
+            let filePart = null;
+            for (const part of parts) {
+                if (part.includes('filename="')) {
+                    filePart = part;
+                    break;
+                }
+            }
+            if (!filePart) { res.writeHead(400); res.end('No file'); return; }
+
+            const filenameMatch = filePart.match(/filename="([^"]+)"/);
+            const origName = filenameMatch ? filenameMatch[1] : 'file';
+            const ext = extname(origName) || '';
+            const uuid = randomUUID();
+            const newName = uuid + ext;
+            const savePath = join(MEDIA_DIR, newName);
+
+            // Extract file data (after double CRLF, before trailing CRLF--)
+            const headerEnd = filePart.indexOf('\r\n\r\n');
+            let fileData = filePart.slice(headerEnd + 4);
+            // Remove trailing \r\n
+            if (fileData.endsWith('\r\n')) fileData = fileData.slice(0, -2);
+
+            await writeFile(savePath, Buffer.from(fileData, 'binary'));
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ filePath: savePath, fileName: origName }));
+        } catch (err) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: err.message }));
+        }
+        return;
+    }
+
     // Proxy /v1/* to gateway
     if (req.url.startsWith('/v1/')) {
         try {
@@ -261,12 +384,25 @@ const server = createServer(async (req, res) => {
             delete headers['origin'];
             delete headers['referer'];
 
+            const rawBody = req.method !== 'GET' && req.method !== 'HEAD'
+                ? await collectBody(req)
+                : undefined;
+
+            // Log user message if chat completions
+            if (req.url.includes('/chat/completions') && rawBody) {
+                try {
+                    const parsed = JSON.parse(rawBody.toString());
+                    const lastMsg = parsed.messages?.[parsed.messages.length - 1];
+                    if (lastMsg?.role === 'user') {
+                        logConversation('user', lastMsg.content);
+                    }
+                } catch {}
+            }
+
             const proxyReq = await fetch(targetUrl, {
                 method: req.method,
                 headers,
-                body: req.method !== 'GET' && req.method !== 'HEAD'
-                    ? await collectBody(req)
-                    : undefined,
+                body: rawBody,
             });
 
             res.writeHead(proxyReq.status, {
@@ -276,11 +412,32 @@ const server = createServer(async (req, res) => {
 
             if (proxyReq.body) {
                 const reader = proxyReq.body.getReader();
+                const decoder = new TextDecoder();
+                let assistantText = '';
+                const isChatStream = req.url.includes('/chat/completions');
                 const pump = async () => {
                     while (true) {
                         const { done, value } = await reader.read();
-                        if (done) { res.end(); return; }
+                        if (done) {
+                            if (isChatStream && assistantText) {
+                                logConversation('assistant', assistantText);
+                            }
+                            res.end();
+                            return;
+                        }
                         res.write(value);
+                        // Capture streamed assistant text
+                        if (isChatStream) {
+                            const chunk = decoder.decode(value, { stream: true });
+                            for (const line of chunk.split('\n')) {
+                                if (!line.startsWith('data: ') || line.slice(6) === '[DONE]') continue;
+                                try {
+                                    const p = JSON.parse(line.slice(6));
+                                    const d = p.choices?.[0]?.delta?.content;
+                                    if (d) assistantText += d;
+                                } catch {}
+                            }
+                        }
                     }
                 };
                 pump().catch(() => res.end());

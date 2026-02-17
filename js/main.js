@@ -5,12 +5,13 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import { createGrid } from './grid.js?v=19';
-import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=24';
+import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=25';
 import { createConnections, animateConnections } from './connections.js?v=19';
 import { createParticles, animateParticles } from './particles.js?v=19';
 import { createDataPanels, updateDataPanels } from './panels.js?v=19';
-import { initializeChat } from './chat.js?v=19';
+import { initializeChat } from './chat.js?v=21';
 import { createShips, animateShips } from './ships.js?v=1';
+import { createGalaxy, animateGalaxy } from './galaxy.js?v=3';
 
 class Dashboard {
     constructor() {
@@ -61,7 +62,7 @@ class Dashboard {
     }
 
     startLiveRefresh() {
-        // Refresh live data every 15 seconds
+        // Refresh live data every 5 seconds
         setInterval(async () => {
             try {
                 const response = await fetch('/api/agents');
@@ -76,7 +77,7 @@ class Dashboard {
             } catch (e) {
                 // Silent fail — keep showing last data
             }
-        }, 15000);
+        }, 5000);
     }
 
     setupScene() {
@@ -129,7 +130,7 @@ class Dashboard {
     }
 
     setupFog() {
-        this.scene.fog = new THREE.FogExp2(0x020208, 0.002); // reduced so galaxy is visible at distance
+        this.scene.fog = new THREE.FogExp2(0x020208, 0.0008); // low so galaxy is visible at distance
     }
 
     createSceneElements() {
@@ -153,6 +154,10 @@ class Dashboard {
 
         // Spaceships
         this.ships = createShips();
+
+        // Galaxy
+        this.galaxy = createGalaxy();
+        this.scene.add(this.galaxy);
     }
 
     setupUI() {
@@ -176,6 +181,9 @@ class Dashboard {
 
         // Spaceships
         animateShips(this.ships, this.scene, t, dt);
+
+        // Galaxy
+        animateGalaxy(this.galaxy, t);
 
         updateDataPanels(this.camera, this.pillars);
         this.composer.render();

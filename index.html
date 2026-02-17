@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sir Ellery — Mission Control</title>
-    <link rel="stylesheet" href="css/style.css?v=12">
+    <link rel="stylesheet" href="css/style.css?v=13">
     <script type="importmap">
     {
       "imports": {
@@ -25,7 +25,13 @@
             <div class="status-dot healthy"></div>
         </div>
         <div class="chat-messages" id="chat-messages"></div>
+        <div id="attachment-preview" class="attachment-preview" style="display:none;">
+            <span id="attachment-name"></span>
+            <button id="attachment-remove" title="Remove">✕</button>
+        </div>
         <div class="chat-input">
+            <button id="attach-btn" title="Attach file">📎</button>
+            <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none;">
             <input type="text" placeholder="Enter command..." id="command-input">
             <button id="send-btn">SEND</button>
         </div>
@@ -35,6 +41,6 @@
     <div id="data-panels"></div>
 
     <!-- Load Main App -->
-    <script type="module" src="js/main.js?v=25"></script>
+    <script type="module" src="js/main.js?v=36"></script>
 </body>
 </html>

@@ -57,15 +57,15 @@ function createPlasmaShell(agent, bodyHeight, floatY) {
 
 function updatePlasmaShell(plasma, agent, bodyHeight, floatY, time) {
     if (!plasma) return;
-    const radius = 0.95;
+    const radius = 1.8;
     const centerY = floatY + bodyHeight / 2;
 
     plasma.arcs.forEach((arc, i) => {
         // Each arc crawls around the hex surface
         const angle1 = (i / plasma.arcs.length) * Math.PI * 2 + time * 1.5 + arc.phase;
-        const angle2 = angle1 + 0.4 + Math.sin(time * 3 + arc.phase) * 0.3;
-        const yOff1 = (Math.sin(time * 2.5 + arc.phase) * 0.5) * bodyHeight * 0.45;
-        const yOff2 = (Math.sin(time * 2.5 + arc.phase + 1.5) * 0.5) * bodyHeight * 0.45;
+        const angle2 = angle1 + 0.6 + Math.sin(time * 3 + arc.phase) * 0.5;
+        const yOff1 = (Math.sin(time * 2.5 + arc.phase) * 0.5) * bodyHeight * 0.65;
+        const yOff2 = (Math.sin(time * 2.5 + arc.phase + 1.5) * 0.5) * bodyHeight * 0.65;
 
         const start = new THREE.Vector3(
             Math.cos(angle1) * radius, centerY + yOff1, Math.sin(angle1) * radius
@@ -81,7 +81,7 @@ function updatePlasmaShell(plasma, agent, bodyHeight, floatY, time) {
             const t = s / segs;
             const p = start.clone().lerp(end, t);
             if (s > 0 && s < segs) {
-                const jitter = 0.12;
+                const jitter = 0.25;
                 p.x += (Math.random() - 0.5) * jitter;
                 p.y += (Math.random() - 0.5) * jitter;
                 p.z += (Math.random() - 0.5) * jitter;
