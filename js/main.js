@@ -86,7 +86,7 @@ class Dashboard {
     }
 
     setupCamera() {
-        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 1000);
         this.camera.position.set(20, 14, 30);
         this.camera.lookAt(0, 5, 0);
     }
@@ -106,10 +106,49 @@ class Dashboard {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.06;
-        this.controls.minDistance = 3;
-        this.controls.maxDistance = 100;
-        this.controls.maxPolarAngle = Math.PI * 0.48;
+        this.controls.enablePan = true;
+        this.controls.panSpeed = 0.8;
+        this.controls.minDistance = 1;
+        this.controls.maxDistance = 200;
+        this.controls.maxPolarAngle = Math.PI * 0.85;
+        this.controls.zoomSpeed = 1.2;
         this.controls.target.set(0, 5, 0);
+
+        // Reset camera button
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = '⟲';
+        resetBtn.title = 'Reset camera';
+        resetBtn.style.cssText = `
+            position: fixed; top: 12px; right: 12px; z-index: 1000;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(20, 25, 35, 0.7); border: 1px solid rgba(100, 200, 255, 0.25);
+            color: rgba(100, 200, 255, 0.7); font-size: 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px); transition: all 0.2s;
+        `;
+        resetBtn.addEventListener('mouseenter', () => {
+            resetBtn.style.borderColor = 'rgba(100, 200, 255, 0.6)';
+            resetBtn.style.color = 'rgba(100, 200, 255, 1)';
+        });
+        resetBtn.addEventListener('mouseleave', () => {
+            resetBtn.style.borderColor = 'rgba(100, 200, 255, 0.25)';
+            resetBtn.style.color = 'rgba(100, 200, 255, 0.7)';
+        });
+        resetBtn.addEventListener('click', () => this.resetCamera());
+        document.body.appendChild(resetBtn);
+
+        // Also bind 'R' key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+                this.resetCamera();
+            }
+        });
+    }
+
+    resetCamera() {
+        this.camera.position.set(20, 14, 30);
+        this.controls.target.set(0, 5, 0);
+        this.controls.update();
     }
 
     setupLighting() {
