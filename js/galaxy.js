@@ -111,6 +111,7 @@ export function createGalaxy() {
     // Position galaxy in the distance, tilted
     group.position.set(0, 80, -250);
     group.rotation.x = Math.PI * 0.25; // tilt toward viewer
+    group.rotation.y = Math.PI * 0.5 * 0.9; // 90% counterclockwise
     group.rotation.z = Math.PI * 0.1;  // slight roll
 
     return group;
@@ -118,5 +119,5 @@ export function createGalaxy() {
 
 export function animateGalaxy(galaxyGroup, time) {
     if (!galaxyGroup) return;
-    galaxyGroup.rotation.y = time * 0.015; // slow spin
+    galaxyGroup.rotation.y = (Math.PI * 0.5 * 0.9) + time * 0.015; // base offset + slow spin
 }

@@ -11,7 +11,7 @@ import { createParticles, animateParticles } from './particles.js?v=23';
 import { createDataPanels, updateDataPanels } from './panels.js?v=19';
 import { initializeChat } from './chat.js?v=21';
 import { createShips, animateShips } from './ships.js?v=1';
-import { createGalaxy, animateGalaxy } from './galaxy.js?v=3';
+import { createGalaxy, animateGalaxy } from './galaxy.js?v=4';
 
 class Dashboard {
     constructor() {
