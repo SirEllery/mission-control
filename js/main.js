@@ -197,6 +197,8 @@ class Dashboard {
         // Galaxy
         this.galaxy = createGalaxy();
         this.scene.add(this.galaxy);
+
+        // (solar system removed — was bogging down performance)
     }
 
     setupUI() {
@@ -223,6 +225,8 @@ class Dashboard {
 
         // Galaxy
         animateGalaxy(this.galaxy, t);
+
+        // (solar system removed)
 
         updateDataPanels(this.camera, this.pillars);
         this.composer.render();
