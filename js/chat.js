@@ -156,7 +156,7 @@ async function sendMessage() {
                 'x-openclaw-agent-id': CHAT_CONFIG.agentId,
             },
             body: JSON.stringify({
-                model: 'openclaw',
+                model: CHAT_CONFIG.model,
                 stream: true,
                 user: CHAT_CONFIG.user,
                 messages: conversationHistory,

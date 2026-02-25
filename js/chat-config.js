@@ -8,6 +8,9 @@ export const CHAT_CONFIG = {
     // Auth token (gateway.auth.token from openclaw.json)
     token: 'REDACTED_TOKEN',
     
+    // Model to use for chat completions
+    model: 'anthropic/claude-opus-4-6',
+    
     // Agent to talk to
     agentId: 'main',
     

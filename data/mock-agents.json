@@ -8,7 +8,9 @@
       "status": "active",
       "currentTask": "Orchestrating agents & Bath Foundry ops",
       "sessions": 3,
-      "channels": ["whatsapp"],
+      "channels": [
+        "whatsapp"
+      ],
       "cronJobs": 5,
       "heartbeat": true,
       "lastActive": "now",
@@ -19,8 +21,12 @@
       "cost": "$0.38",
       "color": "#00ff88",
       "height": 6,
-      "floatHeight": 3.0,
-      "position": [0, 0, 0]
+      "floatHeight": 3,
+      "position": [
+        0,
+        0,
+        0
+      ]
     },
     {
       "id": "dreamer",
@@ -42,7 +48,11 @@
       "color": "#ffaa00",
       "height": 4,
       "floatHeight": 2.5,
-      "position": [-16, 0, -7]
+      "position": [
+        -22,
+        0,
+        -22
+      ]
     },
     {
       "id": "skeptic",
@@ -64,7 +74,11 @@
       "color": "#ff44ff",
       "height": 4,
       "floatHeight": 2.5,
-      "position": [16, 0, -7]
+      "position": [
+        22,
+        0,
+        -20
+      ]
     },
     {
       "id": "researcher",
@@ -85,8 +99,12 @@
       "cost": "$0.00",
       "color": "#00ddff",
       "height": 3,
-      "floatHeight": 2.0,
-      "position": [-16, 0, 14]
+      "floatHeight": 2,
+      "position": [
+        -28,
+        0,
+        8
+      ]
     },
     {
       "id": "engineer",
@@ -94,7 +112,7 @@
       "role": "Implementation",
       "model": "Claude Opus 4.6",
       "status": "active",
-      "currentTask": "Scheduler updates",
+      "currentTask": "Building apps & tools",
       "sessions": 1,
       "channels": [],
       "cronJobs": 0,
@@ -108,12 +126,16 @@
       "color": "#61afef",
       "height": 4,
       "floatHeight": 2.5,
-      "position": [16, 0, 14]
+      "position": [
+        26,
+        0,
+        10
+      ]
     },
     {
       "id": "trader",
-      "name": "Trader",
-      "role": "Trading Systems",
+      "name": "The Trader",
+      "role": "Markets",
       "model": "GPT-5",
       "status": "idle",
       "currentTask": "Awaiting deployment",
@@ -129,8 +151,12 @@
       "cost": "$0.00",
       "color": "#e5c07b",
       "height": 3,
-      "floatHeight": 2.0,
-      "position": [-24, 0, 7]
+      "floatHeight": 2,
+      "position": [
+        -15,
+        0,
+        26
+      ]
     },
     {
       "id": "business",
@@ -151,16 +177,20 @@
       "cost": "$0.00",
       "color": "#d19a66",
       "height": 3,
-      "floatHeight": 2.0,
-      "position": [24, 0, 7]
+      "floatHeight": 2,
+      "position": [
+        16,
+        0,
+        28
+      ]
     },
     {
       "id": "customer-journey",
       "name": "Customer Journey",
-      "role": "Customer Experience",
+      "role": "Marketing & Customer Experience",
       "model": "GPT-5",
       "status": "idle",
-      "currentTask": "Marketing, sales, customer lifecycle",
+      "currentTask": "Marketing, ads, sales, customer lifecycle",
       "sessions": 0,
       "channels": [],
       "cronJobs": 0,
@@ -173,20 +203,91 @@
       "cost": "$0.00",
       "color": "#98c379",
       "height": 3,
-      "floatHeight": 2.0,
-      "position": [0, 0, 21]
+      "floatHeight": 2,
+      "position": [
+        3,
+        0,
+        -30
+      ]
     },
+    {
+      "id": "health",
+      "name": "Health Companion",
+      "role": "Health & Wellness",
+      "model": "Claude Opus 4.6",
+      "status": "idle",
+      "currentTask": "Awaiting deployment",
+      "sessions": 0,
+      "channels": [],
+      "cronJobs": 0,
+      "heartbeat": false,
+      "lastActive": "idle",
+      "tokensToday": 0,
+      "messagesCount": 0,
+      "errorCount": 0,
+      "uptime": "—",
+      "cost": "$0.00",
+      "color": "#56b6c2",
+      "height": 3,
+      "floatHeight": 2,
+      "position": [
+        -26,
+        0,
+        -8
+      ]
     }
   ],
   "connections": [
-    {"from": "sir-ellery", "to": "dreamer", "active": false},
-    {"from": "sir-ellery", "to": "skeptic", "active": false},
-    {"from": "sir-ellery", "to": "researcher", "active": false},
-    {"from": "sir-ellery", "to": "engineer", "active": true},
-    {"from": "sir-ellery", "to": "trader", "active": false},
-    {"from": "sir-ellery", "to": "business", "active": false},
-    {"from": "sir-ellery", "to": "customer-journey", "active": false},
-    {"from": "dreamer", "to": "skeptic", "active": false}
+    {
+      "from": "sir-ellery",
+      "to": "dreamer",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "skeptic",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "researcher",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "engineer",
+      "active": true
+    },
+    {
+      "from": "sir-ellery",
+      "to": "trader",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "business",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "customer-journey",
+      "active": false
+    },
+    {
+      "from": "sir-ellery",
+      "to": "health",
+      "active": false
+    },
+    {
+      "from": "dreamer",
+      "to": "skeptic",
+      "active": false
+    },
+    {
+      "from": "customer-journey",
+      "to": "business",
+      "active": false
+    }
   ],
   "activeConversations": []
 }

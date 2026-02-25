@@ -9,7 +9,7 @@ import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=
 import { createConnections, animateConnections } from './connections.js?v=19';
 import { createParticles, animateParticles } from './particles.js?v=23';
 import { createDataPanels, updateDataPanels } from './panels.js?v=19';
-import { initializeChat } from './chat.js?v=21';
+import { initializeChat } from './chat.js?v=22';
 import { createShips, animateShips } from './ships.js?v=1';
 import { createGalaxy, animateGalaxy } from './galaxy.js?v=4';
 
@@ -62,7 +62,7 @@ class Dashboard {
     }
 
     startLiveRefresh() {
-        // Refresh live data every 5 seconds
+        // Refresh live data every 30 seconds
         setInterval(async () => {
             try {
                 const response = await fetch('/api/agents');
@@ -77,7 +77,7 @@ class Dashboard {
             } catch (e) {
                 // Silent fail — keep showing last data
             }
-        }, 5000);
+        }, 30000);
     }
 
     setupScene() {

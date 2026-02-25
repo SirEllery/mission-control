@@ -261,40 +261,36 @@ const AGENT_VISUALS = {
         height: 6, floatHeight: 3.0, position: [0, 0, 0]
     },
     'dreamer': {
-        name: 'The Dreamer', role: 'Expansionist', color: '#ffdd00',
-        height: 4, floatHeight: 2.5, position: [-16, 0, -7]
+        name: 'The Dreamer', role: 'Expansionist', color: '#ffaa00',
+        height: 4, floatHeight: 2.5, position: [-22, 0, -22]
     },
     'skeptic': {
         name: 'The Skeptic', role: 'Adversarial Reviewer', color: '#ff44ff',
-        height: 4, floatHeight: 2.5, position: [16, 0, -7]
+        height: 4, floatHeight: 2.5, position: [22, 0, -20]
     },
     'researcher': {
-        name: 'The Researcher', role: 'Intelligence', color: '#00ffff',
-        height: 4, floatHeight: 2.5, position: [-16, 0, 14]
+        name: 'The Researcher', role: 'Intelligence', color: '#00ddff',
+        height: 4, floatHeight: 2.5, position: [-28, 0, 8]
     },
     'engineer': {
-        name: 'The Engineer', role: 'Builder', color: '#ff4422',
-        height: 4, floatHeight: 2.5, position: [16, 0, 14]
+        name: 'The Engineer', role: 'Implementation', color: '#61afef',
+        height: 4, floatHeight: 2.5, position: [26, 0, 10]
     },
     'trader': {
-        name: 'The Trader', role: 'Markets', color: '#ffaa00',
-        height: 4, floatHeight: 2.5, position: [-8, 0, 24]
+        name: 'The Trader', role: 'Markets', color: '#e5c07b',
+        height: 3, floatHeight: 2.0, position: [-15, 0, 26]
     },
     'business': {
-        name: 'Business Journey', role: 'Operations', color: '#44aaff',
-        height: 4, floatHeight: 2.5, position: [8, 0, 24]
+        name: 'Business Journey', role: 'Business Operations', color: '#d19a66',
+        height: 3, floatHeight: 2.0, position: [16, 0, 28]
     },
     'customer-journey': {
-        name: 'Customer Journey', role: 'Customer Experience', color: '#98c379',
-        height: 4, floatHeight: 2.5, position: [0, 0, 28]
+        name: 'Customer Journey', role: 'Marketing & Customer Experience', color: '#98c379',
+        height: 3, floatHeight: 2.0, position: [3, 0, -30]
     },
     'health': {
-        name: 'Health Agent', role: 'Health & Wellness', color: '#c678dd',
-        height: 3, floatHeight: 2.0, position: [24, 0, 14]
-    },
-    'research': {
-        name: 'Research', role: 'Deep Research', color: '#66cccc',
-        height: 3, floatHeight: 2.0, position: [-24, 0, 7]
+        name: 'Health Companion', role: 'Health & Wellness', color: '#56b6c2',
+        height: 3, floatHeight: 2.0, position: [-26, 0, -8]
     }
 };
 
