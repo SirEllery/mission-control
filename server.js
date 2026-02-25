@@ -281,8 +281,20 @@ const AGENT_VISUALS = {
         height: 4, floatHeight: 2.5, position: [-8, 0, 24]
     },
     'business': {
-        name: 'Business Agent', role: 'Operations', color: '#44aaff',
+        name: 'Business Journey', role: 'Operations', color: '#44aaff',
         height: 4, floatHeight: 2.5, position: [8, 0, 24]
+    },
+    'customer-journey': {
+        name: 'Customer Journey', role: 'Customer Experience', color: '#98c379',
+        height: 4, floatHeight: 2.5, position: [0, 0, 28]
+    },
+    'health': {
+        name: 'Health Agent', role: 'Health & Wellness', color: '#c678dd',
+        height: 3, floatHeight: 2.0, position: [24, 0, 14]
+    },
+    'research': {
+        name: 'Research', role: 'Deep Research', color: '#66cccc',
+        height: 3, floatHeight: 2.0, position: [-24, 0, 7]
     }
 };
 
@@ -458,7 +470,9 @@ async function fetchLiveAgentData() {
             { from: 'main', to: 'researcher', active: false },
             { from: 'main', to: 'engineer', active: false },
             { from: 'main', to: 'trader', active: false },
-            { from: 'main', to: 'business', active: false }
+            { from: 'main', to: 'business', active: false },
+            { from: 'main', to: 'customer-journey', active: false },
+            { from: 'main', to: 'health', active: false }
         ];
 
         // Mark connections active if both agents are active

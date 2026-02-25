@@ -176,27 +176,6 @@
       "floatHeight": 2.0,
       "position": [0, 0, 21]
     },
-    {
-      "id": "ads",
-      "name": "Ads Strategist",
-      "role": "Google Ads Specialist",
-      "model": "GPT-5",
-      "status": "idle",
-      "currentTask": "Studying Google Ads course",
-      "sessions": 0,
-      "channels": [],
-      "cronJobs": 0,
-      "heartbeat": false,
-      "lastActive": "idle",
-      "tokensToday": 0,
-      "messagesCount": 0,
-      "errorCount": 0,
-      "uptime": "—",
-      "cost": "$0.00",
-      "color": "#c678dd",
-      "height": 3,
-      "floatHeight": 2.0,
-      "position": [8, 0, 28]
     }
   ],
   "connections": [
@@ -207,9 +186,7 @@
     {"from": "sir-ellery", "to": "trader", "active": false},
     {"from": "sir-ellery", "to": "business", "active": false},
     {"from": "sir-ellery", "to": "customer-journey", "active": false},
-    {"from": "sir-ellery", "to": "ads", "active": false},
-    {"from": "dreamer", "to": "skeptic", "active": false},
-    {"from": "customer-journey", "to": "ads", "active": false}
+    {"from": "dreamer", "to": "skeptic", "active": false}
   ],
   "activeConversations": []
 }
