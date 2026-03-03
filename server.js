@@ -20,7 +20,7 @@ for (const d of [MEDIA_DIR, CONVO_DIR]) {
 }
 
 // ═══ PIN AUTH ═══
-const PIN_HASH = createHash('sha256').update(process.env.MC_PIN || 'REDACTED').digest('hex');
+const PIN_HASH = createHash('sha256').update(process.env.MC_PIN || '0000').digest('hex');
 const validSessions = new Set();
 
 function parseCookies(req) {
