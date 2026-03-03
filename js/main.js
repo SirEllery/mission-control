@@ -139,7 +139,10 @@ class Dashboard {
 
         // Also bind 'R' key
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+            if (e.key === 'r' && !e.ctrlKey && !e.metaKey && 
+                document.activeElement.tagName !== 'INPUT' && 
+                document.activeElement.tagName !== 'TEXTAREA' &&
+                !document.activeElement.isContentEditable) {
                 this.resetCamera();
             }
         });
