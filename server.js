@@ -264,35 +264,35 @@ const AGENT_VISUALS = {
     },
     'dreamer': {
         name: 'The Dreamer', role: 'Expansionist', color: '#ffaa00',
-        height: 4, floatHeight: 2.5, position: [-22, 0, -22]
+        height: 4, floatHeight: 2.5, position: [-11, 0, -11]
     },
     'skeptic': {
         name: 'The Skeptic', role: 'Adversarial Reviewer', color: '#ff44ff',
-        height: 4, floatHeight: 2.5, position: [22, 0, -20]
+        height: 4, floatHeight: 2.5, position: [11, 0, -10]
     },
     'researcher': {
         name: 'The Researcher', role: 'Intelligence', color: '#00ddff',
-        height: 4, floatHeight: 2.5, position: [-28, 0, 8]
+        height: 4, floatHeight: 2.5, position: [-14, 0, 4]
     },
     'engineer': {
         name: 'The Engineer', role: 'Implementation', color: '#61afef',
-        height: 4, floatHeight: 2.5, position: [26, 0, 10]
+        height: 4, floatHeight: 2.5, position: [13, 0, 5]
     },
     'trader': {
         name: 'The Trader', role: 'Markets', color: '#e5c07b',
-        height: 3, floatHeight: 2.0, position: [-15, 0, 26]
+        height: 3, floatHeight: 2.0, position: [-8, 0, 13]
     },
     'business': {
         name: 'Business Journey', role: 'Business Operations', color: '#d19a66',
-        height: 3, floatHeight: 2.0, position: [16, 0, 28]
+        height: 3, floatHeight: 2.0, position: [8, 0, 14]
     },
     'customer-journey': {
         name: 'Customer Journey', role: 'Marketing & Customer Experience', color: '#98c379',
-        height: 3, floatHeight: 2.0, position: [3, 0, -30]
+        height: 3, floatHeight: 2.0, position: [2, 0, -15]
     },
     'health': {
         name: 'Health Companion', role: 'Health & Wellness', color: '#56b6c2',
-        height: 3, floatHeight: 2.0, position: [-26, 0, -8]
+        height: 3, floatHeight: 2.0, position: [-13, 0, -4]
     }
 };
 

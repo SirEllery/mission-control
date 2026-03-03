@@ -270,6 +270,7 @@ export function animatePillars(pillars, elapsedTime) {
         p.cap.position.y = baseY + p.agent.height + 0.125;
         p.healthRing.position.y = baseY + 0.05;
         p.halo.position.y = baseY + p.agent.height / 2;
+        // Info panel Y updates here; X/Z set in updateDataPanels based on camera angle
         p.infoPanel.position.y = baseY + p.agent.height * 0.3;
 
         // Beam + counter always animate

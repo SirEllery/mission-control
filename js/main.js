@@ -5,11 +5,11 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import { createGrid } from './grid.js?v=19';
-import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=25';
+import { createPillars, animatePillars, updatePillarData } from './pillars.js?v=26';
 import { createConnections, animateConnections } from './connections.js?v=19';
 import { createParticles, animateParticles } from './particles.js?v=23';
-import { createDataPanels, updateDataPanels } from './panels.js?v=19';
-import { initializeChat } from './chat.js?v=22';
+import { createDataPanels, updateDataPanels } from './panels.js?v=20';
+import { initializeChat } from './chat.js?v=23';
 import { createShips, animateShips } from './ships.js?v=1';
 import { createGalaxy, animateGalaxy } from './galaxy.js?v=4';
 
@@ -62,7 +62,7 @@ class Dashboard {
     }
 
     startLiveRefresh() {
-        // Refresh live data every 30 seconds
+        // Refresh live data every 5 seconds
         setInterval(async () => {
             try {
                 const response = await fetch('/api/agents');
@@ -72,12 +72,24 @@ class Dashboard {
                 
                 // Update pillar data (counters, status, info panels)
                 updatePillarData(this.pillars, newData.agents);
+
+                // Update connection activity states
+                if (newData.activeConversations && this.connections) {
+                    const activeSet = new Set();
+                    for (const conv of newData.activeConversations) {
+                        activeSet.add(`${conv.from}-${conv.to}`);
+                        activeSet.add(`${conv.to}-${conv.from}`);
+                    }
+                    for (const c of this.connections) {
+                        c.active = activeSet.has(`${c.from}-${c.to}`) || activeSet.has(`${c.to}-${c.from}`);
+                    }
+                }
                 
                 console.log('📡 Live refresh', new Date().toLocaleTimeString());
             } catch (e) {
                 // Silent fail — keep showing last data
             }
-        }, 30000);
+        }, 5000);
     }
 
     setupScene() {
@@ -87,7 +99,7 @@ class Dashboard {
 
     setupCamera() {
         this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 1000);
-        this.camera.position.set(20, 14, 30);
+        this.camera.position.set(12, 10, 20);
         this.camera.lookAt(0, 5, 0);
     }
 
@@ -141,7 +153,8 @@ class Dashboard {
     }
 
     resetCamera() {
-        this.camera.position.set(20, 14, 30);
+        console.warn('🔴 CAMERA RESET TRIGGERED', new Error().stack);
+        this.camera.position.set(12, 10, 20);
         this.controls.target.set(0, 5, 0);
         this.controls.update();
     }
@@ -208,6 +221,19 @@ class Dashboard {
         const dt = t - this.lastTime;
         this.lastTime = t;
 
+        // Debug: detect camera snap to default
+        if (this._lastCamX !== undefined) {
+            const dx = Math.abs(this.camera.position.x - this._lastCamX);
+            const dy = Math.abs(this.camera.position.y - this._lastCamY);
+            const dz = Math.abs(this.camera.position.z - this._lastCamZ);
+            if (dx > 5 || dy > 5 || dz > 5) {
+                console.warn(`🔴 CAMERA JUMPED! from(${this._lastCamX.toFixed(1)},${this._lastCamY.toFixed(1)},${this._lastCamZ.toFixed(1)}) to(${this.camera.position.x.toFixed(1)},${this.camera.position.y.toFixed(1)},${this.camera.position.z.toFixed(1)})`, new Error().stack);
+            }
+        }
+        this._lastCamX = this.camera.position.x;
+        this._lastCamY = this.camera.position.y;
+        this._lastCamZ = this.camera.position.z;
+
         this.controls.update();
         animatePillars(this.pillars, t);
         animateConnections(this.connections, t, this.pillars);
@@ -238,4 +264,16 @@ class Dashboard {
 const dashboard = new Dashboard();
 dashboard.init().catch(console.error);
 window.addEventListener('resize', () => dashboard.handleResize());
+
+// Debug: catch events that might cause view reset
+window.addEventListener('beforeunload', () => console.warn('🔴 PAGE UNLOADING'));
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) console.warn('🟡 TAB HIDDEN');
+    else console.warn('🟡 TAB VISIBLE AGAIN');
+});
+const _origReload = window.location.reload;
+window.location.reload = function() {
+    console.warn('🔴 location.reload() CALLED', new Error().stack);
+    return _origReload.apply(this, arguments);
+};
 export { dashboard };
