@@ -6,7 +6,7 @@ export const CHAT_CONFIG = {
     apiBase: '',
     
     // Auth token (gateway.auth.token from openclaw.json)
-    token: 'REDACTED_TOKEN',
+    token: '', // Token injected server-side via proxy
     
     // Model to use for chat completions
     model: 'anthropic/claude-opus-4-6',

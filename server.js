@@ -604,6 +604,8 @@ const server = createServer(async (req, res) => {
             const headers = { ...req.headers, host: '127.0.0.1:18789' };
             delete headers['origin'];
             delete headers['referer'];
+            // Inject gateway token server-side (never expose to browser)
+            headers['authorization'] = `Bearer ${GATEWAY_TOKEN}`;
 
             const rawBody = req.method !== 'GET' && req.method !== 'HEAD'
                 ? await collectBody(req)
