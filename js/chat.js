@@ -220,6 +220,8 @@ async function sendMessage() {
     }
 
     isStreaming = false;
+    // Return focus to input so keyboard doesn't trigger scene shortcuts
+    document.getElementById('command-input').focus();
 }
 
 function showTypingIndicator() {

@@ -137,15 +137,7 @@ class Dashboard {
         resetBtn.addEventListener('click', () => this.resetCamera());
         document.body.appendChild(resetBtn);
 
-        // Also bind 'R' key
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'r' && !e.ctrlKey && !e.metaKey && 
-                document.activeElement.tagName !== 'INPUT' && 
-                document.activeElement.tagName !== 'TEXTAREA' &&
-                !document.activeElement.isContentEditable) {
-                this.resetCamera();
-            }
-        });
+        // R key removed — too easy to trigger accidentally while typing in chat
     }
 
     resetCamera() {
