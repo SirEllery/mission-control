@@ -1,5 +1,7 @@
 // Mission Control — Unified server
 // Serves static dashboard + proxies /v1/* to OpenClaw gateway + /api/agents for live data
+import { readFileSync } from 'node:fs';
+try { const env = readFileSync(new URL('.env', import.meta.url), 'utf8'); env.split('\n').forEach(l => { const [k,...v] = l.split('='); if (k && v.length) process.env[k.trim()] = v.join('=').trim(); }); } catch {}
 import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join, extname } from 'node:path';
@@ -246,7 +248,7 @@ function logWhatsAppMessages(sessions) {
     }
 }
 const GATEWAY = 'http://127.0.0.1:18789';
-const GATEWAY_TOKEN = 'REDACTED_TOKEN';
+const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || '';
 
 const MIME = {
     '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
