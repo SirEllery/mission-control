@@ -154,6 +154,7 @@ async function sendMessage() {
                 'Authorization': `Bearer ${CHAT_CONFIG.token}`,
                 'Content-Type': 'application/json',
                 'x-openclaw-agent-id': CHAT_CONFIG.agentId,
+                'x-openclaw-session-key': CHAT_CONFIG.sessionKey,
             },
             body: JSON.stringify({
                 model: CHAT_CONFIG.model,

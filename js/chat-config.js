@@ -5,8 +5,8 @@ export const CHAT_CONFIG = {
     // Gateway endpoint — uses same origin (proxied by server.js)
     apiBase: '',
     
-    // Auth token (gateway.auth.token from openclaw.json)
-    token: '', // Token injected server-side via proxy
+    // Auth token — injected server-side via proxy, not needed here
+    token: '',
     
     // Model to use for chat completions
     model: 'anthropic/claude-opus-4-6',
@@ -14,7 +14,11 @@ export const CHAT_CONFIG = {
     // Agent to talk to
     agentId: 'main',
     
-    // User identifier (keeps session stable across page reloads)
+    // Session key — routes to the SAME session as WhatsApp
+    // So conversations are shared across all surfaces
+    sessionKey: 'agent:main:main',
+    
+    // User identifier
     user: 'kyle-mission-control',
     
     // Display names
